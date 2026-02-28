@@ -291,8 +291,9 @@ router.get('/monthly', authMiddleware, async (req, res) => {
     if (!employeeId || !year || !month || !entityId) return res.status(400).json({ error: 'Missing parameters' });
     try {
         const db = await getDb();
+        const lastDay = new Date(year, month, 0).getDate();
         const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
-        const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
+        const endStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const runs = await db.exec(`
             SELECT id, date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks
             FROM timesheets WHERE entity_id = ? AND employee_id = ? AND date >= ? AND date <= ? ORDER BY date ASC
