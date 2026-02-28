@@ -367,17 +367,27 @@ router.post('/face-clock', authMiddleware, async (req, res) => {
         const today = sgtTime.toISOString().split('T')[0];
         const timeStr = String(sgtTime.getUTCHours()).padStart(2, '0') + String(sgtTime.getUTCMinutes()).padStart(2, '0');
 
-        const checkRes = await db.exec('SELECT in_time, out_time FROM timesheets WHERE employee_id = ? AND date = ? AND entity_id = ?', [bestMatch.id, today, entityId]);
-        const existing = toObjects(checkRes)[0];
+        const upsertRes = await db.exec(`
+            INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift)
+            VALUES (?, ?, ?, ?, 'Day')
+            ON CONFLICT (entity_id, employee_id, date) 
+            DO UPDATE SET 
+                out_time = CASE 
+                    WHEN timesheets.out_time IS NULL AND timesheets.in_time IS NOT NULL THEN EXCLUDED.in_time 
+                    ELSE timesheets.out_time 
+                END
+            RETURNING in_time, out_time
+        `, [entityId, bestMatch.id, today, timeStr]);
 
+        const resObj = toObjects(upsertRes)[0];
         let action = 'In';
-        if (existing && existing.in_time && !existing.out_time) {
-            await db.run('UPDATE timesheets SET out_time = ? WHERE employee_id = ? AND date = ? AND entity_id = ?', [timeStr, bestMatch.id, today, entityId]);
+
+        if (resObj.out_time === timeStr) {
             action = 'Out';
-        } else if (existing && existing.in_time && existing.out_time) {
-            return res.status(400).json({ error: 'Already clocked in and out today' });
+        } else if (!resObj.out_time) {
+            action = 'In';
         } else {
-            await db.run('INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift) VALUES (?, ?, ?, ?, ?)', [entityId, bestMatch.id, today, timeStr, 'Day']);
+            return res.status(400).json({ error: 'Already clocked in and out today' });
         }
         saveDb();
         res.json({ message: `Successfully clocked ${action} for ${bestMatch.full_name}`, employee: bestMatch, action });

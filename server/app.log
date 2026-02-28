@@ -1,6 +1,6 @@
-[dotenv@17.3.1] injecting env (2) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+[dotenv@17.3.1] injecting env (2) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
 🚀 SERVER RESTARTING - TRANSLATE ROUTE ACTIVE
-[DB] Connected to PostgreSQL at Sat Feb 28 2026 23:44:36 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sat Feb 28 2026 23:59:01 GMT+0800 (Singapore Standard Time)
 📦 Database initialized
 🚀 HRMS Server running on http://localhost:5005
 📋 API Routes:
