@@ -87,7 +87,7 @@ router.post('/run', authMiddleware, async (req, res) => {
 
         // Fetch Public Holidays for this month
         const holidayResult = await db.exec(
-            'SELECT date FROM holidays WHERE entity_id = ? AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
+            'SELECT date FROM holidays WHERE entity_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
             [entityId, String(year), String(month).padStart(2, '0')]
         );
         const holidays = toObjects(holidayResult);
@@ -106,12 +106,11 @@ router.post('/run', authMiddleware, async (req, res) => {
 
         // Create payroll run
         const runDate = new Date().toISOString().split('T')[0];
-        await db.run(
-            `INSERT INTO payroll_runs (entity_id, employee_group, period_year, period_month, run_date, payment_date, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft')`,
+        const runResult = await db.exec(
+            `INSERT INTO payroll_runs (entity_id, employee_group, period_year, period_month, run_date, payment_date, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft') RETURNING id`,
             [entityId, employee_group, year, month, runDate, payment_date || null]
         );
 
-        const runResult = await db.exec(`SELECT last_insert_rowid() as id`);
         if (!runResult.length || !runResult[0].values.length) {
             throw new Error("Failed to retrieve the ID of the new payroll run.");
         }
@@ -128,13 +127,13 @@ router.post('/run', authMiddleware, async (req, res) => {
         for (const emp of employees) {
             // Get unpaid leave days for this month from leave requests
             const leaveResult = await db.exec(
-                'SELECT COALESCE(SUM(lr.days), 0) as unpaid_days FROM leave_requests lr JOIN leave_types lt ON lr.leave_type_id = lt.id WHERE lr.employee_id = ? AND lr.status = \'Approved\' AND lt.name IN (\'Unpaid Leave\', \'AWOL\') AND strftime(\'%Y\', lr.start_date) = ? AND strftime(\'%m\', lr.start_date) = ?',
+                'SELECT COALESCE(SUM(lr.days), 0) as unpaid_days FROM leave_requests lr JOIN leave_types lt ON lr.leave_type_id = lt.id WHERE lr.employee_id = ? AND lr.status = \'Approved\' AND lt.name IN (\'Unpaid Leave\', \'AWOL\') AND TO_CHAR(lr.start_date, \'YYYY\') = ? AND TO_CHAR(lr.start_date, \'MM\') = ?',
                 [emp.id, String(year), String(month).padStart(2, '0')]
             );
 
             // Also get absences recorded via Attendance Import (remarks suggesting leave/absence)
             const attendanceAbsenceResult = await db.exec(
-                'SELECT COUNT(*) as absence_days FROM attendance_remarks WHERE employee_id = ? AND (remark_type = \'Leave/Notice\' OR description LIKE \'%LEAVE%\' OR description LIKE \'%ABSENT%\') AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
+                'SELECT COUNT(*) as absence_days FROM attendance_remarks WHERE employee_id = ? AND (remark_type = \'Leave/Notice\' OR description LIKE \'%LEAVE%\' OR description LIKE \'%ABSENT%\') AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
                 [emp.id, String(year), String(month).padStart(2, '0')]
             );
 
@@ -153,8 +152,8 @@ router.post('/run', authMiddleware, async (req, res) => {
                     SUM(performance_credit) as total_perf_credit
                 FROM timesheets 
                 WHERE employee_id = ? 
-                AND date LIKE ?`,
-                [emp.id, `${year}-${String(month).padStart(2, '0')}-%`]
+                AND TO_CHAR(date, 'YYYY-MM') = ?`,
+                [emp.id, `${year}-${String(month).padStart(2, '0')}`]
             );
             const otData = toObjects(otResult)[0];
             const totalOtHours = otData.total_ot || 0;
@@ -191,7 +190,7 @@ router.post('/run', authMiddleware, async (req, res) => {
             // Determine the employee's primary shift for attendance/deduction context only
             const primaryShiftResult = await db.exec(
                 `SELECT shift, COUNT(*) as cnt FROM timesheets 
-                 WHERE employee_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? 
+                 WHERE employee_id = ? AND TO_CHAR(date, 'YYYY') = ? AND TO_CHAR(date, 'MM') = ? 
                  AND shift IS NOT NULL AND shift != ''
                  GROUP BY shift ORDER BY cnt DESC LIMIT 1`,
                 [emp.id, String(year), String(month).padStart(2, '0')]

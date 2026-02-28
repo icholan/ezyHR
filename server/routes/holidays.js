@@ -27,9 +27,9 @@ router.get('/', authMiddleware, async (req, res) => {
 
         if (year && month) {
             const paddedMonth = String(month).padStart(2, '0');
-            sql += ` AND date LIKE '${year}-${paddedMonth}-%'`;
+            sql += ` AND TO_CHAR(date, 'YYYY-MM') = '${year}-${paddedMonth}'`;
         } else if (year) {
-            sql += ` AND date LIKE '${year}-%'`;
+            sql += ` AND TO_CHAR(date, 'YYYY') = '${year}'`;
         }
 
         sql += ' ORDER BY date ASC';
@@ -49,10 +49,8 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, date, description } = req.body;
 
-        await db.run('INSERT INTO holidays (entity_id, name, date, description) VALUES (?, ?, ?, ?)', [entityId, name, date, description]);
-
-        const result = await db.exec('SELECT last_insert_rowid() AS id');
-        const id = result[0].values[0][0];
+        const insertResult = await db.exec('INSERT INTO holidays (entity_id, name, date, description) VALUES (?, ?, ?, ?) RETURNING id', [entityId, name, date, description]);
+        const id = insertResult[0].values[0][0];
 
         saveDb();
         res.status(201).json({ id, entity_id: entityId, name, date, description });

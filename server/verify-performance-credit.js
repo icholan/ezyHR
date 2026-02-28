@@ -32,8 +32,8 @@ async function verifyPerformanceCredit() {
             COALESCE(SUM(performance_credit), 0) as total_perf_credit
         FROM timesheets 
         WHERE employee_id = ? 
-        AND strftime('%Y', date) = ? 
-        AND strftime('%m', date) = ?`,
+        AND TO_CHAR(date, 'YYYY') = ? 
+        AND TO_CHAR(date, 'MM') = ?`,
         [employeeId, year, month]
     );
     const totalPerfCredit = otResult[0].values[0][0];

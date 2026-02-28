@@ -1,0 +1,357 @@
+
+> hrms-singapore@1.0.0 dev
+> concurrently "npm run dev:server" "npm run dev:client"
+
+[0] 
+[0] > hrms-singapore@1.0.0 dev:server
+[0] > npm run dev --prefix server
+[0] 
+[1] 
+[1] > hrms-singapore@1.0.0 dev:client
+[1] > npm run dev --prefix client
+[1] 
+[1] 
+[1] > client@0.0.0 dev
+[1] > vite
+[1] 
+[0] 
+[0] > hrms-server@1.0.0 dev
+[0] > node index.js
+[0] 
+[0] [dotenv@17.3.1] injecting env (2) from .env -- tip: 🛡️ auth for agents: https://vestauth.com
+[0] 🚀 SERVER RESTARTING - TRANSLATE ROUTE ACTIVE
+[1] Port 5173 is in use, trying another one...
+[1] 
+[1]   VITE v7.3.1  ready in 142 ms
+[1] 
+[1]   ➜  Local:   http://localhost:5174/
+[1]   ➜  Network: use --host to expose
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:15 GMT+0800 (Singapore Standard Time)
+[0] 📦 Database initialized
+[0] 🚀 HRMS Server running on http://localhost:5005
+[0] 📋 API Routes:
+[0]    POST /api/auth/login
+[0]    GET  /api/employees
+[0]    GET  /api/kets/:employeeId
+[0]    GET  /api/leave/types
+[0]    POST /api/payroll/run
+[0]    GET  /api/reports/dashboard
+[0] [2026-02-28T14:36:34.456Z] GET /api/documents/expiring
+[0] [2026-02-28T14:36:34.473Z] GET /api/entities
+[0] [2026-02-28T14:36:34.475Z] GET /api/reports/dashboard
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:35 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:35.451Z] GET /api/documents/expiring
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:35 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:35 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:35 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:36.180Z] GET /api/documents/expiring
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:36 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:36.534Z] GET /api/documents/expiring
+[0] [2026-02-28T14:36:36.693Z] GET /api/reports/dashboard
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:36 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:36 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:37.575Z] GET /api/reports/dashboard
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:37 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:38.453Z] GET /api/reports/dashboard
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:38 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:42.413Z] GET /api/employees
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:42 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:42.956Z] GET /api/employees
+[0] [2026-02-28T14:36:42.977Z] GET /uploads/photos/emp_1772025456686.jpeg
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:43 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:46.225Z] GET /api/employees
+[0] [2026-02-28T14:36:46.228Z] GET /api/leave/types
+[0] [2026-02-28T14:36:46.228Z] GET /api/leave/requests
+[0] [2026-02-28T14:36:46.231Z] GET /api/leave-policies
+[0] [2026-02-28T14:36:46.233Z] GET /api/employee-grades
+[0] [2026-02-28T14:36:46.235Z] GET /api/leave/balances-all/2026
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:46.589Z] GET /api/leave/types
+[0] [2026-02-28T14:36:46.589Z] GET /api/leave/requests
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:46.780Z] GET /api/employees
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:46 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:47 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:47 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:47 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:36:47.312Z] GET /api/employee-grades
+[0] [2026-02-28T14:36:47.312Z] GET /api/leave-policies
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:47 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:36:47 GMT+0800 (Singapore Standard Time)
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [2026-02-28T14:37:02.380Z] GET /api/leave/balances-all/2026
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:02 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:06.638Z] GET /api/holidays?year=2026&month=2&entityId=1
+[0] [2026-02-28T14:37:06.638Z] GET /api/entities
+[0] [2026-02-28T14:37:06.640Z] GET /api/employees?entityId=1
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:06 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:06 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:06 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:07.010Z] GET /api/entities
+[0] [2026-02-28T14:37:07.011Z] GET /api/holidays?year=2026&month=2&entityId=1
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:07 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:07 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:07.218Z] GET /api/employees?entityId=1
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:07 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:09.404Z] GET /api/employees
+[0] [2026-02-28T14:37:09.406Z] GET /api/leave/types
+[0] [2026-02-28T14:37:09.406Z] GET /api/leave/requests
+[0] [2026-02-28T14:37:09.408Z] GET /api/leave-policies
+[0] [2026-02-28T14:37:09.409Z] GET /api/employee-grades
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:09.764Z] GET /api/leave/requests
+[0] [2026-02-28T14:37:09.765Z] GET /api/employee-grades
+[0] [2026-02-28T14:37:09.767Z] GET /api/leave/types
+[0] [2026-02-28T14:37:09.767Z] GET /api/leave-policies
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:09 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:09.945Z] GET /api/employees
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:10 GMT+0800 (Singapore Standard Time)
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [2026-02-28T14:37:18.011Z] GET /api/leave/balances-all/2026
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:18 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:29.414Z] GET /api/leave/balances-all/2026
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:29 GMT+0800 (Singapore Standard Time)
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [2026-02-28T14:37:38.715Z] GET /api/employees
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:38 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:39.269Z] GET /api/employees
+[0] [2026-02-28T14:37:39.310Z] GET /uploads/photos/emp_1772025456686.jpeg
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:39 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:41.745Z] GET /api/employees
+[0] [2026-02-28T14:37:41.747Z] GET /api/leave/types
+[0] [2026-02-28T14:37:41.749Z] GET /api/leave/balances-all/2026
+[0] [2026-02-28T14:37:41.750Z] GET /api/leave/requests
+[0] [2026-02-28T14:37:41.752Z] GET /api/leave-policies
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:41 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:42.291Z] GET /api/employee-grades
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:42.668Z] GET /api/employees
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:42.848Z] GET /api/employee-grades
+[0] [2026-02-28T14:37:42.854Z] GET /api/leave-policies
+[0] [2026-02-28T14:37:42.855Z] GET /api/leave/requests
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:42 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:37:43.213Z] GET /api/leave/types
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:43 GMT+0800 (Singapore Standard Time)
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [2026-02-28T14:37:58.124Z] GET /api/leave/balances-all/2026
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:37:58 GMT+0800 (Singapore Standard Time)
+[0] [DEBUG] GET /balances-all - Returning 153 total balance records
+[0] [2026-02-28T14:38:18.019Z] GET /api/employee-groups
+[0] [2026-02-28T14:38:18.020Z] GET /api/payroll/runs
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:18 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:38:18.390Z] GET /api/employee-groups
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:18 GMT+0800 (Singapore Standard Time)
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:18 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:38:19.089Z] GET /api/payroll/runs
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:19 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:38:23.875Z] GET /api/payroll/run/67
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:23 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:38:27.544Z] GET /api/payroll/payslip/1004
+[0] [DB] Connected to PostgreSQL at Sat Feb 28 2026 22:38:27 GMT+0800 (Singapore Standard Time)
+[0] [2026-02-28T14:38:27.955Z] GET /api/payroll/payslip/1004
+[0] /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/node_modules/pg/lib/client.js:631
+[0]           Error.captureStackTrace(err)
+[0]                 ^
+[0] 
+[0] error: function strftime(unknown, date) does not exist
+[0]     at /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/node_modules/pg/lib/client.js:631:17
+[0]     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[0]     at async Object.query (/Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/pg-init.js:40:28) {
+[0]   length: 216,
+[0]   severity: 'ERROR',
+[0]   code: '42883',
+[0]   detail: undefined,
+[0]   hint: 'No function matches the given name and argument types. You might need to add explicit type casts.',
+[0]   position: '53',
+[0]   internalPosition: undefined,
+[0]   internalQuery: undefined,
+[0]   where: undefined,
+[0]   schema: undefined,
+[0]   table: undefined,
+[0]   column: undefined,
+[0]   dataType: undefined,
+[0]   constraint: undefined,
+[0]   file: 'parse_func.c',
+[0]   line: '629',
+[0]   routine: 'ParseFuncOrColumn'
+[0] }
+[0] 
+[0] Node.js v22.19.0
+[1] 10:38:28 PM [vite] http proxy error: /api/payroll/payslip/1004
+[1] Error: socket hang up
+[1]     at Socket.socketOnEnd (node:_http_client:542:25)
+[1]     at Socket.emit (node:events:531:35)
+[1]     at endReadableNT (node:internal/streams/readable:1698:12)
+[1]     at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+[0] npm run dev:server exited with code 1
+[1] 10:38:37 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:47 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:47 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:51 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:51 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:51 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:51 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/entities
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:53 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/types
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/balances-all/2026
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/requests
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave-policies
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/employee-grades
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/balances-all/2026
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/types
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave/requests
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/leave-policies
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:38:55 PM [vite] http proxy error: /api/employee-grades
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:32 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:32 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:32 PM [vite] http proxy error: /api/reports/dashboard
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:32 PM [vite] http proxy error: /api/documents/expiring
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:34 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:34 PM [vite] http proxy error: /api/employees
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:54 PM [vite] http proxy error: /api/auth/login
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)
+[1] 10:39:55 PM [vite] http proxy error: /api/auth/login
+[1] AggregateError [ECONNREFUSED]: 
+[1]     at internalConnectMultiple (node:net:1134:18)
+[1]     at afterConnectMultiple (node:net:1715:7)

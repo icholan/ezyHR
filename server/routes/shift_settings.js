@@ -58,13 +58,14 @@ router.post('/', async (req, res) => {
 
     try {
         const db = await getDb();
-        await db.run(`
+        const result = await db.exec(`
             INSERT INTO shift_settings (
                 entity_id, shift_name, start_time, end_time, ot_start_time, 
                 late_arrival_threshold_mins, early_departure_threshold_mins,
                 late_arrival_penalty_block_mins, early_departure_penalty_block_mins,
                 compulsory_ot_hours, lunch_break_mins, dinner_break_mins, midnight_break_mins
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING *
         `, [
             entity_id, shift_name,
             start_time || '08:00',
@@ -81,8 +82,6 @@ router.post('/', async (req, res) => {
         ]);
 
         saveDb();
-
-        const result = await db.exec('SELECT * FROM shift_settings WHERE id = last_insert_rowid()');
         res.status(201).json(toObjects(result)[0]);
     } catch (err) {
         if (err.message.includes('UNIQUE constraint failed')) {

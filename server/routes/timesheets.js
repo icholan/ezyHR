@@ -117,8 +117,8 @@ router.get('/', authMiddleware, async (req, res) => {
         let params = [entityId];
 
         if (monthPrefix) {
-            query += ` AND t.date LIKE ?`;
-            params.push(monthPrefix + '-%');
+            query += ` AND TO_CHAR(t.date, 'YYYY-MM') = ?`;
+            params.push(monthPrefix);
         }
 
         query += ` ORDER BY t.date DESC, e.employee_id ASC LIMIT 500`;

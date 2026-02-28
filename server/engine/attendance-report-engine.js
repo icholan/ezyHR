@@ -23,13 +23,13 @@ function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
 
     // 1. Fetch holidays
     const holidays = toObjects(db.exec(
-        'SELECT date, name FROM holidays WHERE entity_id = ? AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
+        'SELECT date, name FROM holidays WHERE entity_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
         [entityId, yearStr, monthPadded]
     ));
 
     // 2. Fetch timesheets
     const timesheets = toObjects(db.exec(
-        'SELECT * FROM timesheets WHERE employee_id = ? AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
+        'SELECT * FROM timesheets WHERE employee_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
         [empId, yearStr, monthPadded]
     ));
 
@@ -39,8 +39,8 @@ function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
         FROM leave_requests lr 
         JOIN leave_types lt ON lr.leave_type_id = lt.id 
         WHERE lr.employee_id = ? AND lr.status = 'Approved'
-        AND ((strftime('%Y', lr.start_date) = ? AND strftime('%m', lr.start_date) = ?)
-        OR (strftime('%Y', lr.end_date) = ? AND strftime('%m', lr.end_date) = ?))
+        AND ((TO_CHAR(lr.start_date, 'YYYY') = ? AND TO_CHAR(lr.start_date, 'MM') = ?)
+        OR (TO_CHAR(lr.end_date, 'YYYY') = ? AND TO_CHAR(lr.end_date, 'MM') = ?))
     `, [empId, yearStr, monthPadded, yearStr, monthPadded]));
 
     // 4. Fetch Employee Details for Rest Day

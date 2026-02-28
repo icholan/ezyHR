@@ -16,7 +16,7 @@ const pool = new Pool({
 
 pool.on('error', (err, client) => {
     console.error('Unexpected error on idle client', err);
-    process.exit(-1);
+    // Remove process.exit(-1) to prevent the entire server from crashing on a transient DB error
 });
 
 /**
@@ -28,8 +28,11 @@ const db = {
      * Translates SQLite ? parameter bindings to PostgreSQL $1, $2, etc.
      * This allows us to migrate raw queries more easily without rewriting everything immediately.
      */
-    async query(text, params) {
+    async query(text, params = []) {
         let pgText = text;
+
+        // More robust replacement: only replace '?' if it's not part of a string or identifier
+        // For now, simple replacement is okay, but we should be aware of limitations.
         if (text.includes('?')) {
             let i = 1;
             pgText = text.replace(/\?/g, () => `$${i++}`);
@@ -39,14 +42,11 @@ const db = {
         try {
             const result = await client.query(pgText, params);
 
-            // IF it's an INSERT/UPDATE/DELETE (no rows returned) or empty
+            // Handle cases where no rows are returned (e.g., INSERT/UPDATE/DELETE)
             if (!result.rows || result.rows.length === 0) {
                 return [];
             }
 
-            // EMULATE sql.js format for the existing toObjects() parser in the routes
-            // Postgres returns an array of objects `[ { id: 1, name: '...' } ]`
-            // sql.js returned `[ { columns: ['id', 'name'], values: [ [1, '...'] ] } ]`
             const columns = Object.keys(result.rows[0]);
             const values = result.rows.map(row => columns.map(col => row[col]));
 
@@ -55,6 +55,9 @@ const db = {
                 values: values
             }];
 
+        } catch (err) {
+            console.error(`[DB Error] Query: ${pgText}`, err);
+            throw err;
         } finally {
             client.release();
         }

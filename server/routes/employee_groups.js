@@ -35,10 +35,8 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, description } = req.body;
 
-        await db.run('INSERT INTO employee_groups (entity_id, name, description) VALUES (?, ?, ?)', [entityId, name, description]);
-
-        const result = await db.exec('SELECT last_insert_rowid() AS id');
-        const id = result[0].values[0][0];
+        const insertResult = await db.exec('INSERT INTO employee_groups (entity_id, name, description) VALUES (?, ?, ?) RETURNING id', [entityId, name, description]);
+        const id = insertResult[0].values[0][0];
 
         saveDb();
         res.status(201).json({ id, entity_id: entityId, name, description });

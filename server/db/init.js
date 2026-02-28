@@ -3,7 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 
-const DB_PATH = path.join(__dirname, 'hrms.sqlite');
+const DB_PATH = path.join(__dirname, 'hrms-db.sqlite');
 
 let db = null;
 

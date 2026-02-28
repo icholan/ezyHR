@@ -42,11 +42,10 @@ router.post('/', authMiddleware, async (req, res) => {
         const { name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier } = req.body;
 
         // Insert Entity
-        await db.run('INSERT INTO entities (name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0]);
+        const insertResult = await db.exec('INSERT INTO entities (name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0]);
 
         // Get inserted ID
-        const result = await db.exec('SELECT last_insert_rowid() AS id');
-        const entityId = result[0].values[0][0];
+        const entityId = insertResult[0].values[0][0];
 
         // Assign current Admin to this new Entity automatically
         await db.run(

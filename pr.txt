@@ -1,0 +1,16 @@
+0|id|INTEGER|0||1
+1|employee_group|TEXT|1||0
+2|period_year|INTEGER|1||0
+3|period_month|INTEGER|1||0
+4|run_date|DATE|1||0
+5|total_gross|REAL|0|0|0
+6|total_cpf_employee|REAL|0|0|0
+7|total_cpf_employer|REAL|0|0|0
+8|total_sdl|REAL|0|0|0
+9|total_shg|REAL|0|0|0
+10|total_net|REAL|0|0|0
+11|status|TEXT|0|'Draft'|0
+12|created_at|DATETIME|0|CURRENT_TIMESTAMP|0
+13|entity_id|INTEGER|0|1|0
+14|payment_date|DATE|0||0
+15|is_locked|INTEGER|0|0|0

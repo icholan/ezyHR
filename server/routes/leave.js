@@ -220,30 +220,207 @@ router.get('/balances-all/:year', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const role = req.user.role;
         const groups = req.user.managedGroups || [];
+        const year = parseInt(req.params.year, 10);
+
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
 
-        let sql = `SELECT id FROM employees WHERE entity_id = ? AND status = 'Active'`;
-        const params = [entityId];
-
-        // RBAC: HR only see their groups
+        // 1. Fetch all active employees for the entity (respecting HR groups)
+        let empSql = `SELECT * FROM employees WHERE entity_id = ? AND status = 'Active'`;
+        const empParams = [entityId];
         if (String(role).toUpperCase() === 'HR') {
             if (groups.length === 0) return res.json([]);
             const placeholders = groups.map(() => '?').join(',');
-            sql += ` AND employee_group IN (${placeholders})`;
-            params.push(...groups);
+            empSql += ` AND employee_group IN (${placeholders})`;
+            empParams.push(...groups);
         }
+        const employees = toObjects(await db.exec(empSql, empParams));
+        if (!employees.length) return res.json([]);
 
-        const empResult = await db.exec(sql, params);
-        const employees = toObjects(empResult);
+        const employeeIds = employees.map(e => e.id);
+        const empIdsPlaceholders = employeeIds.map(() => '?').join(',');
 
-        let allBalances = [];
-        const year = parseInt(req.params.year, 10);
+        // 2. Fetch ALL required data in bulk
+        const [balRes, polRes, typeRes, reqRes, remarkRes] = await Promise.all([
+            // Raw balances
+            db.exec(`
+                SELECT lb.*, lt.name as leave_type_name, e.full_name as employee_name, e.employee_id as employee_code, e.date_joined, e.employee_grade, e.entity_id as entity_id
+                FROM leave_balances lb
+                JOIN leave_types lt ON lb.leave_type_id = lt.id
+                JOIN employees e ON lb.employee_id = e.id
+                WHERE lb.employee_id IN (${empIdsPlaceholders}) AND lb.year = ?
+            `, [...employeeIds, year]),
+
+            // Grade Policies
+            db.exec('SELECT * FROM leave_policies WHERE entity_id = ?', [entityId]),
+
+            // Leave Type IDs for proration logic
+            db.exec("SELECT id, name FROM leave_types WHERE name IN ('Unpaid Leave', 'AWOL', 'Medical Leave', 'Hospitalization Leave', 'Annual Leave')"),
+
+            // Approved Leave Requests (for proration deductions)
+            db.exec(`
+                SELECT employee_id, leave_type_id, days 
+                FROM leave_requests 
+                WHERE employee_id IN (${empIdsPlaceholders}) AND status = 'Approved'
+                AND start_date >= ? AND end_date <= ?
+            `, [...employeeIds, `${year}-01-01`, `${year}-12-31`]),
+
+            // Attendance Remarks (for AWOL deductions)
+            db.exec(`
+                SELECT employee_id, remark_type 
+                FROM attendance_remarks 
+                WHERE employee_id IN (${empIdsPlaceholders}) 
+                AND (remark_type = 'AWOL' OR remark_type = 'Absent')
+                AND date >= ? AND date <= ?
+            `, [...employeeIds, `${year}-01-01`, `${year}-12-31`])
+        ]);
+
+        const allRawBalances = toObjects(balRes);
+        const allPolicies = toObjects(polRes);
+        const leaveTypes = toObjects(typeRes);
+        const allRequests = toObjects(reqRes);
+        const allRemarks = toObjects(remarkRes);
+
+        const unpaidTypeIds = leaveTypes.filter(t => ['Unpaid Leave', 'AWOL'].includes(t.name)).map(t => t.id);
+        const annualId = leaveTypes.find(t => t.name === 'Annual Leave')?.id;
+        const medicalId = leaveTypes.find(t => t.name === 'Medical Leave')?.id;
+        const hospId = leaveTypes.find(t => t.name === 'Hospitalization Leave')?.id;
+
+        // 3. Group data by employee for O(1) lookup
+        const balancesByEmp = {};
+        allRawBalances.forEach(b => {
+            if (!balancesByEmp[b.employee_id]) balancesByEmp[b.employee_id] = [];
+            balancesByEmp[b.employee_id].push(b);
+        });
+
+        const requestsByEmp = {};
+        allRequests.forEach(r => {
+            if (!requestsByEmp[r.employee_id]) requestsByEmp[r.employee_id] = [];
+            requestsByEmp[r.employee_id].push(r);
+        });
+
+        const remarksByEmp = {};
+        allRemarks.forEach(rem => {
+            if (!remarksByEmp[rem.employee_id]) remarksByEmp[rem.employee_id] = [];
+            remarksByEmp[rem.employee_id].push(rem);
+        });
+
+        const policiesByGrade = {};
+        allPolicies.forEach(p => {
+            if (!policiesByGrade[p.employee_grade]) policiesByGrade[p.employee_grade] = [];
+            policiesByGrade[p.employee_grade].push(p);
+        });
+
+        // 4. Perform In-Memory Proration Logic
+        const currentDate = new Date();
+        const queryYearStart = new Date(year, 0, 1);
+        const queryYearEnd = new Date(year, 11, 31);
+        const queryYearEndPlusOne = new Date(year + 1, 0, 1);
+
+        let yearRefDate = currentDate;
+        if (year < currentDate.getFullYear()) yearRefDate = queryYearEndPlusOne;
+        else if (year > currentDate.getFullYear()) yearRefDate = queryYearStart;
+
+        const results = [];
+
         for (const emp of employees) {
-            const bals = await computeDynamicBalances(db, emp.id, year);
-            allBalances = allBalances.concat(bals);
+            const empBalances = balancesByEmp[emp.id] || [];
+            if (!empBalances.length) continue;
+
+            const dateJoined = new Date(emp.date_joined || new Date());
+
+            // Service calculations
+            const empRequests = requestsByEmp[emp.id] || [];
+            const empRemarks = remarksByEmp[emp.id] || [];
+
+            const totalUnpaidDays = empRequests
+                .filter(r => unpaidTypeIds.includes(r.leave_type_id))
+                .reduce((sum, r) => sum + (parseFloat(r.days) || 0), 0);
+            const totalAwolDays = empRemarks.length;
+            const totalDeductedDays = totalUnpaidDays + totalAwolDays;
+            const monthDeduction = totalDeductedDays / 30;
+
+            let totalPossibleMonthsThisYear = 12;
+            if (dateJoined.getFullYear() === year) {
+                totalPossibleMonthsThisYear = (queryYearEndPlusOne.getFullYear() - dateJoined.getFullYear()) * 12 + (queryYearEndPlusOne.getMonth() - dateJoined.getMonth());
+                if (queryYearEndPlusOne.getDate() < dateJoined.getDate()) totalPossibleMonthsThisYear--;
+                totalPossibleMonthsThisYear = Math.max(0, Math.min(12, totalPossibleMonthsThisYear));
+            } else if (dateJoined.getFullYear() > year) {
+                totalPossibleMonthsThisYear = 0;
+            }
+
+            let workStartThisYear = dateJoined.getFullYear() < year ? queryYearStart : dateJoined;
+            let monthsCompletedThisYear = 0;
+            if (yearRefDate > workStartThisYear && yearRefDate.getTime() !== queryYearStart.getTime()) {
+                monthsCompletedThisYear = (yearRefDate.getFullYear() - workStartThisYear.getFullYear()) * 12 + (yearRefDate.getMonth() - workStartThisYear.getMonth());
+                if (yearRefDate.getDate() < workStartThisYear.getDate()) monthsCompletedThisYear--;
+                monthsCompletedThisYear = Math.max(0, Math.min(totalPossibleMonthsThisYear, monthsCompletedThisYear));
+            }
+
+            const adjustedPossibleMonths = Math.max(0, totalPossibleMonthsThisYear - monthDeduction);
+            const adjustedCompletedMonths = Math.max(0, monthsCompletedThisYear - monthDeduction);
+
+            let totalCompletedMonthsTillDate = (yearRefDate.getFullYear() - dateJoined.getFullYear()) * 12 + (yearRefDate.getMonth() - dateJoined.getMonth());
+            if (yearRefDate.getDate() < dateJoined.getDate()) totalCompletedMonthsTillDate--;
+            totalCompletedMonthsTillDate = Math.max(0, totalCompletedMonthsTillDate);
+
+            const empPolicies = policiesByGrade[emp.employee_grade] || [];
+
+            empBalances.forEach(lb => {
+                let entitled = lb.entitled || 0;
+                let earned = lb.earned || 0;
+                let carriedForward = lb.carried_forward || 0;
+                let effectiveCarriedForward = carriedForward;
+                const policy = empPolicies.find(p => p.leave_type_id === lb.leave_type_id);
+
+                if (policy && policy.carry_forward_expiry_months > 0) {
+                    const expiryDate = new Date(year, policy.carry_forward_expiry_months, 1);
+                    if (currentDate >= expiryDate) {
+                        effectiveCarriedForward = Math.min(carriedForward, lb.taken);
+                    }
+                }
+                if (policy && policy.carry_forward_max !== undefined) {
+                    effectiveCarriedForward = Math.min(effectiveCarriedForward, policy.carry_forward_max);
+                }
+
+                if (lb.leave_type_id === annualId) {
+                    let pEnt = 0;
+                    if (policy) {
+                        const years = Math.floor(totalCompletedMonthsTillDate / 12);
+                        pEnt = policy.base_days + (years * policy.increment_per_year);
+                        if (policy.max_days > 0) pEnt = Math.min(pEnt, policy.max_days);
+                    }
+                    let momMin = Math.min(14, 7 + Math.floor(totalCompletedMonthsTillDate / 12));
+                    let fullYearAtt = Math.max(momMin, pEnt);
+                    entitled = Math.round((adjustedPossibleMonths / 12) * fullYearAtt * 2) / 2;
+                    earned = Math.round((adjustedCompletedMonths / 12) * fullYearAtt * 2) / 2;
+                    if (totalCompletedMonthsTillDate < 3) earned = 0;
+                } else if (lb.leave_type_id === medicalId) {
+                    if (totalCompletedMonthsTillDate < 3) earned = 0;
+                    else if (totalCompletedMonthsTillDate === 3) earned = 5;
+                    else if (totalCompletedMonthsTillDate === 4) earned = 8;
+                    else if (totalCompletedMonthsTillDate === 5) earned = 11;
+                    else earned = 14;
+                    entitled = 14;
+                } else if (lb.leave_type_id === hospId) {
+                    if (totalCompletedMonthsTillDate < 3) earned = 0;
+                    else if (totalCompletedMonthsTillDate === 3) earned = 15;
+                    else if (totalCompletedMonthsTillDate === 4) earned = 30;
+                    else if (totalCompletedMonthsTillDate === 5) earned = 45;
+                    else earned = 60;
+                    entitled = 60;
+                }
+
+                results.push({
+                    ...lb,
+                    entitled,
+                    earned,
+                    balance: Math.max(0, effectiveCarriedForward + earned - lb.taken)
+                });
+            });
         }
-        console.log(`[DEBUG] GET /balances-all - Returning ${allBalances.length} total balance records`);
-        res.json(allBalances);
+
+        console.log(`[DEBUG] GET /balances-all - Bulk Optimized - Returning ${results.length} total balance records`);
+        res.json(results);
     } catch (err) {
         console.error('Error GET /balances-all/:year', err);
         res.status(500).json({ error: err.message });

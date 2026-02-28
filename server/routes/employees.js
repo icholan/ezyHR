@@ -290,12 +290,12 @@ router.post('/:id/transfer', authMiddleware, async (req, res) => {
         try {
             const empResult = await db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [req.params.id, currentEntityId]);
             const emp = toObjects(empResult)[0];
-            await db.run(
+            const insertResult = await db.exec(
                 `INSERT INTO employees (entity_id, employee_id, full_name, date_of_birth, national_id, nationality, tax_residency, race, gender, language, mobile_number, whatsapp_number, email, highest_education, designation, department, employee_group, employee_grade, date_joined, basic_salary, transport_allowance, meal_allowance, other_allowance, other_deduction, bank_name, bank_account, cpf_applicable, status, payment_mode, custom_allowances, custom_deductions, site_id) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
                 [targetEntityId, emp.employee_id || '', emp.full_name || '', emp.date_of_birth || null, emp.national_id || null, emp.nationality || 'Singapore Citizen', emp.tax_residency || 'Resident', emp.race || 'Chinese', emp.gender || '', emp.language || '', emp.mobile_number || '', emp.whatsapp_number || '', emp.email || '', emp.highest_education || 'Others', emp.designation || '', emp.department || '', emp.employee_group || 'General', emp.employee_grade || '', emp.date_joined || null, emp.basic_salary || 0, emp.transport_allowance || 0, emp.meal_allowance || 0, emp.other_allowance || 0, emp.other_deduction || 0, emp.bank_name || '', emp.bank_account || '', emp.cpf_applicable !== undefined ? emp.cpf_applicable : 1, 'Active', emp.payment_mode || 'Bank Transfer', emp.custom_allowances || '{}', emp.custom_deductions || '{}', emp.site_id || null]
             );
-            const newEmpId = (await db.exec(`SELECT last_insert_rowid() AS id`))[0].values[0][0];
+            const newEmpId = insertResult[0].values[0][0];
             await db.run('UPDATE employees SET status = \'Transferred\' WHERE id = ?', [emp.id]);
             await db.exec('COMMIT');
             saveDb();

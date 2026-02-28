@@ -1,0 +1,14 @@
+0|id|INTEGER|0||1
+1|entity_id|INTEGER|1||0
+2|employee_id|INTEGER|1||0
+3|year_of_assessment|INTEGER|1||0
+4|form_type|TEXT|1||0
+5|is_amendment|BOOLEAN|0|0|0
+6|amendment_reason|TEXT|0||0
+7|form_data|TEXT|1||0
+8|generated_at|DATETIME|0|CURRENT_TIMESTAMP|0
+9|is_locked|BOOLEAN|0|1|0
+10|year|INTEGER|0||0
+11|data_json|TEXT|0||0
+12|status|TEXT|0||0
+13|version|INTEGER|0|1|0
