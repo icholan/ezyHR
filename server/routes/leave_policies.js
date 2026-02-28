@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ function toObjects(result) {
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT lp.*, lt.name as leave_type_name 
             FROM leave_policies lp 
             JOIN leave_types lt ON lp.leave_type_id = lt.id 
@@ -39,7 +39,7 @@ router.post('/', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'Grade and Leave Type are required' });
         }
 
-        db.run(
+        await db.run(
             `INSERT INTO leave_policies (entity_id, employee_grade, leave_type_id, base_days, increment_per_year, max_days, carry_forward_max, carry_forward_expiry_months, encashment_allowed) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) 
              ON CONFLICT(entity_id, employee_grade, leave_type_id) 
@@ -65,7 +65,7 @@ router.post('/', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run(`DELETE FROM leave_policies WHERE id = ${req.params.id} AND entity_id = ${req.user.entityId}`);
+        await db.run(`DELETE FROM leave_policies WHERE id = ${req.params.id} AND entity_id = ${req.user.entityId}`);
         saveDb();
         res.json({ message: 'Policy deleted' });
     } catch (err) { res.status(500).json({ error: err.message }); }

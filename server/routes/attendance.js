@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const XLSX = require('xlsx');
 const fs = require('fs');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const upload = multer({ dest: 'uploads/temp/' });
@@ -35,7 +35,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
             JOIN user_roles ur ON uer.role = ur.name
             WHERE uer.user_id = ?
         `;
-        const authResult = db.exec(authSql, [userId]);
+        const authResult = await db.exec(authSql, [userId]);
         const authorizations = toObjects(authResult);
 
         if (!authorizations.length) {
@@ -61,13 +61,13 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
         const placeholders = activeEntityIds.map(() => '?').join(',');
 
         // 2. Cache lookups
-        const employeeResult = db.exec(`SELECT id, employee_id, site_id, entity_id FROM employees WHERE entity_id IN (${placeholders})`, activeEntityIds);
+        const employeeResult = await db.exec(`SELECT id, employee_id, site_id, entity_id FROM employees WHERE entity_id IN (${placeholders})`, activeEntityIds);
         const employeeMap = {};
         toObjects(employeeResult).forEach(emp => {
             employeeMap[emp.employee_id] = { id: emp.id, site_id: emp.site_id, entity_id: emp.entity_id };
         });
 
-        const siteHoursResult = db.exec(`
+        const siteHoursResult = await db.exec(`
             SELECT h.* FROM site_working_hours h
             JOIN sites s ON h.site_id = s.id
             JOIN customers c ON s.customer_id = c.id
@@ -78,7 +78,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
             hoursMap[`${h.site_id}_${h.day_of_week}_${h.shift_type}`] = h;
         });
 
-        const globalShiftsResult = db.exec(`SELECT * FROM shift_settings WHERE entity_id IN (${placeholders})`, activeEntityIds);
+        const globalShiftsResult = await db.exec(`SELECT * FROM shift_settings WHERE entity_id IN (${placeholders})`, activeEntityIds);
         const globalShiftsMap = {};
         toObjects(globalShiftsResult).forEach(gs => {
             globalShiftsMap[`${gs.entity_id}_${gs.shift_name}`] = gs;
@@ -91,13 +91,13 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
             filesProcessed: 0
         };
 
-        if (!dryRun) db.exec("BEGIN TRANSACTION");
+        if (!dryRun) await db.exec("BEGIN TRANSACTION");
 
         for (const file of req.files) {
             const workbook = XLSX.readFile(file.path);
             results.filesProcessed++;
 
-            workbook.SheetNames.forEach(sheetName => {
+            for (const sheetName of workbook.SheetNames) {
                 const worksheet = workbook.Sheets[sheetName];
                 const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
@@ -132,7 +132,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
                     }
                 }
 
-                if (!reportDate) return;
+                if (!reportDate) continue;
 
                 let headerRowIdx = -1;
                 for (let i = 0; i < Math.min(20, data.length); i++) {
@@ -142,7 +142,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
                     }
                 }
 
-                if (headerRowIdx === -1) return;
+                if (headerRowIdx === -1) continue;
 
                 const header = data[headerRowIdx].map(h => String(h || '').toLowerCase().trim());
                 const empNoIdx = header.findIndex(h => h.includes('emp.no'));
@@ -154,7 +154,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
 
                 let holidaysInSheet = [];
                 try {
-                    const hRes = db.exec(`SELECT date FROM holidays WHERE entity_id = ?`, [req.user.entityId]);
+                    const hRes = await db.exec(`SELECT date FROM holidays WHERE entity_id = ?`, [req.user.entityId]);
                     holidaysInSheet = toObjects(hRes).map(h => h.date);
                 } catch (e) { }
 
@@ -244,7 +244,7 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
                     }
 
                     try {
-                        db.run(`
+                        await db.run(`
                             INSERT INTO timesheets (entity_id, employee_id, date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks, source_file)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                             ON CONFLICT(entity_id, employee_id, date) DO UPDATE SET
@@ -256,15 +256,15 @@ router.post('/import', authMiddleware, upload.any(), async (req, res) => {
                         results.processed++;
                     } catch (e) { results.errors.push(`${file.originalname}: ${e.message}`); }
                 }
-            });
+            }
             try { fs.unlinkSync(file.path); } catch (e) { }
         }
 
-        if (!dryRun) { db.exec("COMMIT"); saveDb(); }
+        if (!dryRun) { await db.exec("COMMIT"); saveDb(); }
         res.json({ message: 'Import completed', results, dryRun });
     } catch (err) {
         const db = await getDb();
-        try { db.exec("ROLLBACK"); } catch (e) { }
+        try { await db.exec("ROLLBACK"); } catch (e) { }
         res.status(500).json({ error: 'Process failed: ' + err.message });
     }
 });
@@ -274,7 +274,7 @@ router.get('/history', authMiddleware, async (req, res) => {
     if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
     try {
         const db = await getDb();
-        const runs = db.exec(`
+        const runs = await db.exec(`
             SELECT t.*, e.full_name as employee_name, e.employee_id as employee_code
             FROM timesheets t
             JOIN employees e ON t.employee_id = e.id
@@ -293,7 +293,7 @@ router.get('/monthly', authMiddleware, async (req, res) => {
         const db = await getDb();
         const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
         const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
-        const runs = db.exec(`
+        const runs = await db.exec(`
             SELECT id, date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks
             FROM timesheets WHERE entity_id = ? AND employee_id = ? AND date >= ? AND date <= ? ORDER BY date ASC
         `, [entityId, employeeId, startStr, endStr]);
@@ -307,9 +307,9 @@ router.post('/monthly', authMiddleware, async (req, res) => {
     if (!employeeId || !Array.isArray(records) || !entityId) return res.status(400).json({ error: 'Missing parameters' });
     try {
         const db = await getDb();
-        db.exec("BEGIN TRANSACTION");
-        records.forEach(rc => {
-            db.run(`
+        await db.exec("BEGIN TRANSACTION");
+        for (const rc of records) {
+            await db.run(`
                 INSERT INTO timesheets(entity_id, employee_id, date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks, source_file)
                 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Manual Override')
                 ON CONFLICT(entity_id, employee_id, date) DO UPDATE SET
@@ -318,13 +318,13 @@ router.post('/monthly', authMiddleware, async (req, res) => {
                 ph_hours = excluded.ph_hours, late_mins = excluded.late_mins,
                 early_out_mins = excluded.early_out_mins, performance_credit = excluded.performance_credit, remarks = excluded.remarks
             `, [entityId, employeeId, rc.date, rc.in_time || '', rc.out_time || '', rc.shift || 'Day', rc.ot_hours || 0, rc.ot_1_5_hours || 0, rc.ot_2_0_hours || 0, rc.normal_hours || 0, rc.ph_hours || 0, rc.late_mins || 0, rc.early_out_mins || 0, rc.performance_credit || 0, rc.remarks || '']);
-        });
-        db.exec("COMMIT");
+        }
+        await db.exec("COMMIT");
         saveDb();
         res.json({ message: 'Monthly records updated' });
     } catch (err) {
         const db = await getDb();
-        try { db.exec("ROLLBACK"); } catch (e) { }
+        try { await db.exec("ROLLBACK"); } catch (e) { }
         res.status(500).json({ error: err.message });
     }
 });
@@ -336,7 +336,7 @@ router.post('/face-clock', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         if (!descriptor || !entityId) return res.status(400).json({ error: 'Missing descriptor or entity context' });
 
-        const empsRes = db.exec('SELECT id, full_name, employee_id, face_descriptor FROM employees WHERE entity_id = ? AND face_descriptor IS NOT NULL', [entityId]);
+        const empsRes = await db.exec('SELECT id, full_name, employee_id, face_descriptor FROM employees WHERE entity_id = ? AND face_descriptor IS NOT NULL', [entityId]);
         const emps = toObjects(empsRes);
         console.log(`[FACE_CLOCK] Comparing against ${emps.length} enrolled employees for entity ${entityId}`);
 
@@ -345,14 +345,14 @@ router.post('/face-clock', authMiddleware, async (req, res) => {
 
         const calculateDistance = (d1, d2) => Math.sqrt(d1.reduce((sum, val, i) => sum + Math.pow(val - d2[i], 2), 0));
 
-        emps.forEach(emp => {
+        for (const emp of emps) {
             try {
                 const empDescriptor = JSON.parse(emp.face_descriptor);
                 const distance = calculateDistance(descriptor, empDescriptor);
                 console.log(`   - Distance for ${emp.full_name}: ${distance.toFixed(4)}`);
                 if (distance < minDistance) { minDistance = distance; bestMatch = emp; }
             } catch (e) { }
-        });
+        }
 
         if (!bestMatch) {
             console.warn(`[FACE_CLOCK] No match found. Min distance observed: ${minDistance.toFixed(4)}`);
@@ -366,17 +366,17 @@ router.post('/face-clock', authMiddleware, async (req, res) => {
         const today = sgtTime.toISOString().split('T')[0];
         const timeStr = String(sgtTime.getUTCHours()).padStart(2, '0') + String(sgtTime.getUTCMinutes()).padStart(2, '0');
 
-        const checkRes = db.exec('SELECT in_time, out_time FROM timesheets WHERE employee_id = ? AND date = ? AND entity_id = ?', [bestMatch.id, today, entityId]);
+        const checkRes = await db.exec('SELECT in_time, out_time FROM timesheets WHERE employee_id = ? AND date = ? AND entity_id = ?', [bestMatch.id, today, entityId]);
         const existing = toObjects(checkRes)[0];
 
         let action = 'In';
         if (existing && existing.in_time && !existing.out_time) {
-            db.run('UPDATE timesheets SET out_time = ? WHERE employee_id = ? AND date = ? AND entity_id = ?', [timeStr, bestMatch.id, today, entityId]);
+            await db.run('UPDATE timesheets SET out_time = ? WHERE employee_id = ? AND date = ? AND entity_id = ?', [timeStr, bestMatch.id, today, entityId]);
             action = 'Out';
         } else if (existing && existing.in_time && existing.out_time) {
             return res.status(400).json({ error: 'Already clocked in and out today' });
         } else {
-            db.run('INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift) VALUES (?, ?, ?, ?, ?)', [entityId, bestMatch.id, today, timeStr, 'Day']);
+            await db.run('INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift) VALUES (?, ?, ?, ?, ?)', [entityId, bestMatch.id, today, timeStr, 'Day']);
         }
         saveDb();
         res.json({ message: `Successfully clocked ${action} for ${bestMatch.full_name}`, employee: bestMatch, action });

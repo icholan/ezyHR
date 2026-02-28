@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,7 +27,7 @@ router.get('/', authMiddleware, async (req, res) => {
             WHERE uer.user_id = ?
         `;
 
-        const result = db.exec(query, [userId]);
+        const result = await db.exec(query, [userId]);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -42,14 +42,14 @@ router.post('/', authMiddleware, async (req, res) => {
         const { name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier } = req.body;
 
         // Insert Entity
-        db.run('INSERT INTO entities (name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0]);
+        await db.run('INSERT INTO entities (name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0]);
 
         // Get inserted ID
-        const result = db.exec('SELECT last_insert_rowid() AS id');
+        const result = await db.exec('SELECT last_insert_rowid() AS id');
         const entityId = result[0].values[0][0];
 
         // Assign current Admin to this new Entity automatically
-        db.run(
+        await db.run(
             'INSERT INTO user_entity_roles (user_id, entity_id, role, managed_groups) VALUES (?, ?, ?, ?)',
             [req.user.id, entityId, 'Admin', '[]']
         );
@@ -67,7 +67,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier } = req.body;
-        db.run('UPDATE entities SET name = ?, uen = ?, address = ?, contact_number = ?, website = ?, email_domains = ?, logo_url = ?, performance_multiplier = ? WHERE id = ?', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0, req.params.id]);
+        await db.run('UPDATE entities SET name = ?, uen = ?, address = ?, contact_number = ?, website = ?, email_domains = ?, logo_url = ?, performance_multiplier = ? WHERE id = ?', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0, req.params.id]);
         saveDb();
         res.json({ message: 'Entity updated successfully' });
     } catch (err) {
@@ -81,8 +81,8 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         // Check if there are constraints or just delete (cascade if we enabled it, otherwise manual)
-        db.run('DELETE FROM user_entity_roles WHERE entity_id = ?', [req.params.id]);
-        db.run('DELETE FROM entities WHERE id = ?', [req.params.id]);
+        await db.run('DELETE FROM user_entity_roles WHERE entity_id = ?', [req.params.id]);
+        await db.run('DELETE FROM entities WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Entity deleted successfully' });
     } catch (err) {

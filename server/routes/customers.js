@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ function toObjects(result) {
 router.get('/', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`SELECT * FROM customers WHERE entity_id = ${req.user.entityId} ORDER BY name`);
+        const result = await db.exec(`SELECT * FROM customers WHERE entity_id = ${req.user.entityId} ORDER BY name`);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -30,7 +30,7 @@ router.post('/', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { name, description } = req.body;
-        db.run(
+        await db.run(
             `INSERT INTO customers (entity_id, name, description) VALUES (?, ?, ?)`,
             [req.user.entityId, name, description]
         );
@@ -46,7 +46,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { name, description } = req.body;
-        db.run(
+        await db.run(
             `UPDATE customers SET name = ?, description = ? WHERE id = ? AND entity_id = ?`,
             [name, description, req.params.id, req.user.entityId]
         );
@@ -61,7 +61,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run(`DELETE FROM customers WHERE id = ${req.params.id} AND entity_id = ${req.user.entityId}`);
+        await db.run(`DELETE FROM customers WHERE id = ${req.params.id} AND entity_id = ${req.user.entityId}`);
         saveDb();
         res.json({ message: 'Customer deleted' });
     } catch (err) {

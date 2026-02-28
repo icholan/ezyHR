@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -20,7 +20,7 @@ router.get('/', authMiddleware, async (req, res) => {
         const db = await getDb();
         const entityId = req.user.entityId;
 
-        const result = db.exec('SELECT * FROM departments WHERE entity_id = ? ORDER BY name ASC', [entityId]);
+        const result = await db.exec('SELECT * FROM departments WHERE entity_id = ? ORDER BY name ASC', [entityId]);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -35,9 +35,9 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, description } = req.body;
 
-        db.run('INSERT INTO departments (entity_id, name, description) VALUES (?, ?, ?)', [entityId, name, description]);
+        await db.run('INSERT INTO departments (entity_id, name, description) VALUES (?, ?, ?)', [entityId, name, description]);
 
-        const result = db.exec('SELECT last_insert_rowid() AS id');
+        const result = await db.exec('SELECT last_insert_rowid() AS id');
         const id = result[0].values[0][0];
 
         saveDb();
@@ -55,7 +55,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, description } = req.body;
 
-        db.run('UPDATE departments SET name = ?, description = ? WHERE id = ? AND entity_id = ?', [name, description, req.params.id, entityId]);
+        await db.run('UPDATE departments SET name = ?, description = ? WHERE id = ? AND entity_id = ?', [name, description, req.params.id, entityId]);
         saveDb();
         res.json({ message: 'Department updated' });
     } catch (err) {
@@ -72,7 +72,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
         // Prevent deletion if employees are tied to it (Optional: or we can just let it be a free-text field in employees)
         // Currently 'department' in employees is free text, so safe to delete
-        db.run('DELETE FROM departments WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
+        await db.run('DELETE FROM departments WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
         saveDb();
         res.json({ message: 'Department deleted' });
     } catch (err) {

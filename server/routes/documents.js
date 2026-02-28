@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -40,7 +40,7 @@ router.get('/expiring', authMiddleware, async (req, res) => {
 
         query += ' ORDER BY d.expiry_date ASC';
 
-        const result = db.exec(query);
+        const result = await db.exec(query);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -51,7 +51,7 @@ router.get('/expiring', authMiddleware, async (req, res) => {
 router.get('/:employeeId', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`SELECT * FROM employee_documents WHERE employee_id = ${req.params.employeeId} ORDER BY expiry_date ASC`);
+        const result = await db.exec(`SELECT * FROM employee_documents WHERE employee_id = ${req.params.employeeId} ORDER BY expiry_date ASC`);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -86,7 +86,7 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
         const d = req.body;
         const filePath = req.file ? `/uploads/${req.file.filename}` : null;
 
-        db.run(
+        await db.run(
             `INSERT INTO employee_documents (employee_id, document_type, document_number, issue_date, expiry_date, file_path) VALUES (?, ?, ?, ?, ?, ?)`,
             [d.employee_id, d.document_type, d.document_number, d.issue_date, d.expiry_date || null, filePath]
         );
@@ -102,7 +102,7 @@ router.post('/', authMiddleware, upload.single('file'), async (req, res) => {
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run(`DELETE FROM employee_documents WHERE id = ${req.params.id}`);
+        await db.run(`DELETE FROM employee_documents WHERE id = ${req.params.id}`);
         saveDb();
         res.json({ message: 'Document deleted' });
     } catch (err) {

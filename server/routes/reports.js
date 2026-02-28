@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb } = require('../db/init');
+const { getDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const { generateMonthlyAttendanceReport } = require('../engine/attendance-report-engine');
 
@@ -22,16 +22,16 @@ router.get('/dashboard', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
 
-        const empCount = db.exec('SELECT COUNT(*) as count FROM employees WHERE entity_id = ? AND status = \'Active\'', [entityId]);
+        const empCount = await db.exec('SELECT COUNT(*) as count FROM employees WHERE entity_id = ? AND status = \'Active\'', [entityId]);
         const headcount = toObjects(empCount)[0]?.count || 0;
 
-        const latestRun = db.exec('SELECT * FROM payroll_runs WHERE entity_id = ? ORDER BY period_year DESC, period_month DESC LIMIT 1', [entityId]);
+        const latestRun = await db.exec('SELECT * FROM payroll_runs WHERE entity_id = ? ORDER BY period_year DESC, period_month DESC LIMIT 1', [entityId]);
         const latest = toObjects(latestRun)[0] || null;
 
-        const allRuns = db.exec('SELECT * FROM payroll_runs WHERE entity_id = ? ORDER BY period_year ASC, period_month ASC LIMIT 12', [entityId]);
+        const allRuns = await db.exec('SELECT * FROM payroll_runs WHERE entity_id = ? ORDER BY period_year ASC, period_month ASC LIMIT 12', [entityId]);
         const runs = toObjects(allRuns);
 
-        const pendingLeaves = db.exec('SELECT COUNT(*) as count FROM leave_requests lr JOIN employees e ON lr.employee_id = e.id WHERE e.entity_id = ? AND lr.status = \'Pending\'', [entityId]);
+        const pendingLeaves = await db.exec('SELECT COUNT(*) as count FROM leave_requests lr JOIN employees e ON lr.employee_id = e.id WHERE e.entity_id = ? AND lr.status = \'Pending\'', [entityId]);
         const pendingCount = toObjects(pendingLeaves)[0]?.count || 0;
 
         res.json({
@@ -51,7 +51,7 @@ router.get('/cpf/:year/:month', authMiddleware, async (req, res) => {
         const db = await getDb();
         const { year, month } = req.params;
         const entityId = req.user.entityId;
-        const result = db.exec(
+        const result = await db.exec(
             'SELECT p.employee_name, p.employee_code, p.gross_pay, p.cpf_employee, p.cpf_employer, p.cpf_oa, p.cpf_sa, p.cpf_ma FROM payslips p JOIN payroll_runs pr ON p.payroll_run_id = pr.id WHERE pr.entity_id = ? AND pr.period_year = ? AND pr.period_month = ?',
             [entityId, year, month]
         );
@@ -78,7 +78,7 @@ router.get('/ir8a/:year', authMiddleware, async (req, res) => {
         const db = await getDb();
         const { year } = req.params;
         const entityId = req.user.entityId;
-        const result = db.exec(
+        const result = await db.exec(
             'SELECT p.employee_name, p.employee_code, SUM(p.gross_pay) as total_gross, SUM(p.cpf_employee) as total_cpf_employee, SUM(p.cpf_employer) as total_cpf_employer, SUM(p.bonus) as total_bonus FROM payslips p JOIN payroll_runs pr ON p.payroll_run_id = pr.id WHERE pr.entity_id = ? AND pr.period_year = ? GROUP BY p.employee_id',
             [entityId, year]
         );
@@ -94,7 +94,7 @@ router.get('/sdl/:year/:month', authMiddleware, async (req, res) => {
         const db = await getDb();
         const { year, month } = req.params;
         const entityId = req.user.entityId;
-        const result = db.exec(
+        const result = await db.exec(
             'SELECT p.employee_name, p.employee_code, p.gross_pay, p.sdl FROM payslips p JOIN payroll_runs pr ON p.payroll_run_id = pr.id WHERE pr.entity_id = ? AND pr.period_year = ? AND pr.period_month = ?',
             [entityId, year, month]
         );
@@ -112,7 +112,7 @@ router.get('/shg/:year/:month', authMiddleware, async (req, res) => {
         const db = await getDb();
         const { year, month } = req.params;
         const entityId = req.user.entityId;
-        const result = db.exec(
+        const result = await db.exec(
             'SELECT p.employee_name, p.employee_code, p.shg_fund, p.shg_deduction FROM payslips p JOIN payroll_runs pr ON p.payroll_run_id = pr.id WHERE pr.entity_id = ? AND pr.period_year = ? AND pr.period_month = ? AND p.shg_deduction > 0',
             [entityId, year, month]
         );
@@ -139,7 +139,7 @@ router.get('/employee-master', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT e.*, en.name as entity_name, 
                    ek.job_title, ek.employment_start_date, ek.basic_salary as ket_basic,
                    ek.fixed_allowances, ek.working_days_per_week as ket_days,
@@ -167,7 +167,7 @@ router.get('/doc-expiry', authMiddleware, async (req, res) => {
         ninetyDaysOut.setDate(ninetyDaysOut.getDate() + 90);
         const dateStr = ninetyDaysOut.toISOString().split('T')[0];
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT id, employee_id, full_name, nationality, 
                    cessation_date, pr_status_start_date
             FROM employees 
@@ -188,7 +188,7 @@ router.get('/summary/:year/:month', authMiddleware, async (req, res) => {
         const { year, month } = req.params;
         const entityId = req.user.entityId;
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT 
                 COUNT(*) as headcount,
                 SUM(gross_pay) as total_gross,
@@ -220,7 +220,7 @@ router.get('/consolidated/:year/:month', authMiddleware, async (req, res) => {
         const { year, month } = req.params;
         const entityId = req.user.entityId;
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT 
                 employee_group,
                 COUNT(*) as headcount,
@@ -248,7 +248,7 @@ router.get('/run-payslips/:runId', authMiddleware, async (req, res) => {
         const { runId } = req.params;
         const entityId = req.user.entityId;
 
-        const runResult = db.exec(`
+        const runResult = await db.exec(`
             SELECT pr.*, en.name as entity_name, en.logo_url
             FROM payroll_runs pr
             JOIN entities en ON pr.entity_id = en.id
@@ -257,7 +257,7 @@ router.get('/run-payslips/:runId', authMiddleware, async (req, res) => {
         const run = toObjects(runResult)[0];
         if (!run) return res.status(404).json({ error: 'Payroll run not found' });
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT p.*, e.employee_id as emp_code, en.name as entity_name, en.logo_url
             FROM payslips p 
             JOIN employees e ON p.employee_id = e.id 
@@ -284,7 +284,7 @@ router.get('/payroll-detail/:year/:month', authMiddleware, async (req, res) => {
         const { year, month } = req.params;
         const entityId = req.user.entityId;
 
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT 
                 p.employee_name, 
                 p.employee_code,
@@ -328,7 +328,7 @@ router.get('/detailed-attendance/:year/:month/:employeeId', authMiddleware, asyn
         const entityId = req.user.entityId;
 
         // Fetch employee details
-        const empResult = db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
+        const empResult = await db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
         const employees = toObjects(empResult);
         if (!employees.length) return res.status(404).json({ error: 'Employee not found' });
         const emp = employees[0];

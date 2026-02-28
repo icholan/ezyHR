@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ function toObjects(result) {
 router.get('/:employeeId', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT k.*, e.full_name as employee_name, e.employee_id as employee_code, e.date_joined, en.name as entity_name, en.logo_url,
                    e.email, e.whatsapp_number, e.mobile_number
             FROM employee_kets k 
@@ -99,8 +99,8 @@ router.put('/:employeeId', authMiddleware, async (req, res) => {
         const empId = parseInt(req.params.employeeId);
         console.log(`[KET Update] Starting cycle for Emp ID: ${empId}`);
 
-        db.run(query, params);
-        const ketChanges = db.exec("SELECT changes()")[0].values[0][0];
+        await db.run(query, params);
+        const ketChanges = (await db.exec("SELECT changes()"))[0].values[0][0];
         console.log(`[KET Update] employee_kets table rows affected: ${ketChanges}`);
 
         // SYNC: Update the employees table with shared fields from the KET
@@ -123,8 +123,8 @@ router.put('/:employeeId', authMiddleware, async (req, res) => {
             empId
         ];
 
-        db.run(syncQuery, syncParams);
-        const empChanges = db.exec("SELECT changes()")[0].values[0][0];
+        await db.run(syncQuery, syncParams);
+        const empChanges = (await db.exec("SELECT changes()"))[0].values[0][0];
         console.log(`[KET Update] employees table rows synchronized: ${empChanges}`);
 
         if (empChanges === 0) {
@@ -136,7 +136,7 @@ router.put('/:employeeId', authMiddleware, async (req, res) => {
         saveDb();
 
         // Re-fetch the updated KET with all joined data to return to frontend
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT k.*, e.full_name as employee_name, e.employee_id as employee_code, e.date_joined, en.name as entity_name, en.logo_url,
                    e.email, e.whatsapp_number, e.mobile_number
             FROM employee_kets k 
@@ -165,7 +165,7 @@ router.post('/:employeeId/issue', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const today = new Date().toISOString().split('T')[0];
-        db.run(`UPDATE employee_kets SET issued_date = ? WHERE employee_id = ?`, [today, req.params.employeeId]);
+        await db.run(`UPDATE employee_kets SET issued_date = ? WHERE employee_id = ?`, [today, req.params.employeeId]);
         saveDb();
         res.json({ message: 'KETs issued successfully', issued_date: today });
     } catch (err) {

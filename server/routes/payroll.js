@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const { processEmployeePayroll } = require('../engine/payroll-engine');
 const { generateMonthlyAttendanceReport } = require('../engine/attendance-report-engine');
@@ -47,7 +47,7 @@ router.get('/runs', authMiddleware, async (req, res) => {
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
 
         const query = 'SELECT * FROM payroll_runs WHERE entity_id = ? ORDER BY period_year DESC, period_month DESC';
-        const result = db.exec(query, [entityId]);
+        const result = await db.exec(query, [entityId]);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -68,7 +68,7 @@ router.post('/run', authMiddleware, async (req, res) => {
         }
 
         // Check for existing run
-        const existing = db.exec(
+        const existing = await db.exec(
             'SELECT id FROM payroll_runs WHERE entity_id = ? AND period_year = ? AND period_month = ? AND employee_group = ?',
             [entityId, year, month, employee_group]
         );
@@ -77,7 +77,7 @@ router.post('/run', authMiddleware, async (req, res) => {
         }
 
         // Get active employees
-        const empResult = db.exec('SELECT * FROM employees WHERE entity_id = ? AND status = \'Active\' AND employee_group = ?', [entityId, employee_group]);
+        const empResult = await db.exec('SELECT * FROM employees WHERE entity_id = ? AND status = \'Active\' AND employee_group = ?', [entityId, employee_group]);
         const employees = toObjects(empResult);
 
         if (!employees.length) {
@@ -86,14 +86,14 @@ router.post('/run', authMiddleware, async (req, res) => {
         }
 
         // Fetch Public Holidays for this month
-        const holidayResult = db.exec(
+        const holidayResult = await db.exec(
             'SELECT date FROM holidays WHERE entity_id = ? AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
             [entityId, String(year), String(month).padStart(2, '0')]
         );
         const holidays = toObjects(holidayResult);
 
         // Fetch master shift settings for this entity (used for OT rate calculation)
-        const shiftSettingsResult = db.exec(
+        const shiftSettingsResult = await db.exec(
             'SELECT * FROM shift_settings WHERE entity_id = ?',
             [entityId]
         );
@@ -106,12 +106,12 @@ router.post('/run', authMiddleware, async (req, res) => {
 
         // Create payroll run
         const runDate = new Date().toISOString().split('T')[0];
-        db.run(
+        await db.run(
             `INSERT INTO payroll_runs (entity_id, employee_group, period_year, period_month, run_date, payment_date, status) VALUES (?, ?, ?, ?, ?, ?, 'Draft')`,
             [entityId, employee_group, year, month, runDate, payment_date || null]
         );
 
-        const runResult = db.exec(`SELECT last_insert_rowid() as id`);
+        const runResult = await db.exec(`SELECT last_insert_rowid() as id`);
         if (!runResult.length || !runResult[0].values.length) {
             throw new Error("Failed to retrieve the ID of the new payroll run.");
         }
@@ -119,7 +119,7 @@ router.post('/run', authMiddleware, async (req, res) => {
         console.log(`[PAYROLL_RUN] Created Run ID: ${runId} for Group: ${employee_group}`);
 
         // Fetch entity-level performance multiplier
-        const entityResult = db.exec('SELECT performance_multiplier FROM entities WHERE id = ?', [entityId]);
+        const entityResult = await db.exec('SELECT performance_multiplier FROM entities WHERE id = ?', [entityId]);
         const entityPerfMultiplier = toObjects(entityResult)[0]?.performance_multiplier || 0;
 
         let totalGross = 0, totalCPFEmployee = 0, totalCPFEmployer = 0, totalSDL = 0, totalSHG = 0, totalNet = 0;
@@ -127,13 +127,13 @@ router.post('/run', authMiddleware, async (req, res) => {
         // Process each employee
         for (const emp of employees) {
             // Get unpaid leave days for this month from leave requests
-            const leaveResult = db.exec(
+            const leaveResult = await db.exec(
                 'SELECT COALESCE(SUM(lr.days), 0) as unpaid_days FROM leave_requests lr JOIN leave_types lt ON lr.leave_type_id = lt.id WHERE lr.employee_id = ? AND lr.status = \'Approved\' AND lt.name IN (\'Unpaid Leave\', \'AWOL\') AND strftime(\'%Y\', lr.start_date) = ? AND strftime(\'%m\', lr.start_date) = ?',
                 [emp.id, String(year), String(month).padStart(2, '0')]
             );
 
             // Also get absences recorded via Attendance Import (remarks suggesting leave/absence)
-            const attendanceAbsenceResult = db.exec(
+            const attendanceAbsenceResult = await db.exec(
                 'SELECT COUNT(*) as absence_days FROM attendance_remarks WHERE employee_id = ? AND (remark_type = \'Leave/Notice\' OR description LIKE \'%LEAVE%\' OR description LIKE \'%ABSENT%\') AND strftime(\'%Y\', date) = ? AND strftime(\'%m\', date) = ?',
                 [emp.id, String(year), String(month).padStart(2, '0')]
             );
@@ -143,7 +143,7 @@ router.post('/run', authMiddleware, async (req, res) => {
             const unpaidDays = approvedUnpaidDays + siteReportedAbsenceDays;
 
             // Get OT hours and Penalties for this month from timesheets
-            const otResult = db.exec(
+            const otResult = await db.exec(
                 `SELECT 
                     SUM(ot_hours) as total_ot, 
                     SUM(ot_1_5_hours) as total_ot_1_5, 
@@ -189,7 +189,7 @@ router.post('/run', authMiddleware, async (req, res) => {
             }
 
             // Determine the employee's primary shift for attendance/deduction context only
-            const primaryShiftResult = db.exec(
+            const primaryShiftResult = await db.exec(
                 `SELECT shift, COUNT(*) as cnt FROM timesheets 
                  WHERE employee_id = ? AND strftime('%Y', date) = ? AND strftime('%m', date) = ? 
                  AND shift IS NOT NULL AND shift != ''
@@ -236,7 +236,7 @@ router.post('/run', authMiddleware, async (req, res) => {
                 const dayOfWeek = dateObj.getDay();
 
                 // Check if employee worked on this PH (any timesheet entry on this date)
-                const workedOnPHResult = db.exec(
+                const workedOnPHResult = await db.exec(
                     'SELECT id FROM timesheets WHERE employee_id = ? AND date = ?',
                     [emp.id, hDate]
                 );
@@ -253,7 +253,7 @@ router.post('/run', authMiddleware, async (req, res) => {
             // 2. Implement "Leave Credit" for PH on Off-Day (MOM Section 42(3))
             if (phOffDaysToCredit > 0) {
                 // Increment Annual Leave balance (Leave Type ID for Annual Leave usually is 1 or name 'Annual Leave')
-                db.run(
+                await db.run(
                     'UPDATE leave_balances SET entitled = entitled + ? WHERE employee_id = ? AND leave_type_id = (SELECT id FROM leave_types WHERE name = \'Annual Leave\' LIMIT 1)',
                     [phOffDaysToCredit, emp.id]
                 );
@@ -285,7 +285,7 @@ router.post('/run', authMiddleware, async (req, res) => {
             });
 
             // Insert payslip (including the new PH and Penalty fields)
-            db.run(
+            await db.run(
                 `INSERT INTO payslips (
                     payroll_run_id, employee_id, employee_name, employee_code, basic_salary, 
                     transport_allowance, meal_allowance, other_allowance, custom_allowances, 
@@ -322,7 +322,7 @@ router.post('/run', authMiddleware, async (req, res) => {
         }
 
         // Update run totals
-        db.run(
+        await db.run(
             `UPDATE payroll_runs SET total_gross=?, total_cpf_employee=?, total_cpf_employer=?, total_sdl=?, total_shg=?, total_net=?, status='Finalized' WHERE id=?`,
             [totalGross, totalCPFEmployee, totalCPFEmployer, totalSDL, totalSHG, totalNet, runId]
         );
@@ -330,8 +330,8 @@ router.post('/run', authMiddleware, async (req, res) => {
         saveDb();
 
         // Return the complete payroll run with payslips
-        const finalRun = toObjects(db.exec('SELECT * FROM payroll_runs WHERE id = ?', [runId]))[0];
-        const payslips = toObjects(db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [runId]));
+        const finalRun = toObjects((await db.exec('SELECT * FROM payroll_runs WHERE id = ?', [runId])))[0];
+        const payslips = toObjects(await db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [runId]));
 
         res.status(201).json({ run: finalRun, payslips });
     } catch (err) {
@@ -346,11 +346,11 @@ router.get('/run/:id', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
 
-        const runResult = db.exec('SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
+        const runResult = await db.exec('SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
         const run = toObjects(runResult)[0];
         if (!run) return res.status(404).json({ error: 'Payroll run not found or access denied' });
 
-        const payslips = toObjects(db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [req.params.id]));
+        const payslips = toObjects(await db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [req.params.id]));
         res.json({ run, payslips });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -361,7 +361,7 @@ router.get('/run/:id', authMiddleware, async (req, res) => {
 router.get('/payslip/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT p.*, pr.period_year, pr.period_month, pr.run_date, pr.payment_date, be.name as entity_name, be.logo_url,
                    e.email, e.whatsapp_number, e.mobile_number
             FROM payslips p 
@@ -395,22 +395,22 @@ router.delete('/run/:id', authMiddleware, async (req, res) => {
         console.log(`[PAYROLL_DELETE] Attempting to delete run ${id} for entity ${entityId}`);
 
         // Ensure the run belongs to the active entity
-        const runRes = db.exec('SELECT id FROM payroll_runs WHERE id = ? AND entity_id = ?', [id, entityId]);
+        const runRes = await db.exec('SELECT id FROM payroll_runs WHERE id = ? AND entity_id = ?', [id, entityId]);
         if (!runRes.length || !runRes[0].values.length) {
             console.warn(`[PAYROLL_DELETE] Run ${id} not found or access denied for entity ${entityId}`);
             return res.status(404).json({ error: 'Payroll run not found or access denied' });
         }
 
-        db.exec('BEGIN TRANSACTION');
+        await db.exec('BEGIN TRANSACTION');
         try {
-            db.run(`DELETE FROM payslips WHERE payroll_run_id = ?`, [id]);
-            db.run(`DELETE FROM payroll_runs WHERE id = ?`, [id]);
-            db.exec('COMMIT');
+            await db.run(`DELETE FROM payslips WHERE payroll_run_id = ?`, [id]);
+            await db.run(`DELETE FROM payroll_runs WHERE id = ?`, [id]);
+            await db.exec('COMMIT');
             saveDb();
             console.log(`[PAYROLL_DELETE] Successfully deleted run ${id}`);
             res.json({ message: 'Payroll run deleted successfully' });
         } catch (err) {
-            db.exec('ROLLBACK');
+            await db.exec('ROLLBACK');
             console.error(`[PAYROLL_DELETE_ERROR] Transaction failed for run ${id}:`, err);
             res.status(500).json({ error: 'Failed to delete payroll run: ' + err.message });
         }
@@ -430,11 +430,11 @@ router.get('/export-giro/:runId', authMiddleware, async (req, res) => {
         const format = req.query.format || 'DBS';
         const entityId = req.user.entityId;
 
-        const runResult = db.exec(`SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?`, [runId, entityId]);
+        const runResult = await db.exec(`SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?`, [runId, entityId]);
         if (!runResult.length || !runResult[0].values.length) return res.status(404).json({ error: 'Run not found or access denied' });
         const run = toObjects(runResult)[0];
 
-        const slipsResult = db.exec(`
+        const slipsResult = await db.exec(`
             SELECT p.*, e.bank_name, e.bank_account, e.employee_id as emp_code
             FROM payslips p 
             JOIN employees e ON p.employee_id = e.id 
@@ -459,11 +459,11 @@ router.get('/export-cpf/:runId', authMiddleware, async (req, res) => {
         const runId = req.params.runId;
         const entityId = req.user.entityId;
 
-        const runResult = db.exec(`SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?`, [runId, entityId]);
+        const runResult = await db.exec(`SELECT * FROM payroll_runs WHERE id = ? AND entity_id = ?`, [runId, entityId]);
         if (!runResult.length || !runResult[0].values.length) return res.status(404).json({ error: 'Run not found or access denied' });
         const run = toObjects(runResult)[0];
 
-        const slipsResult = db.exec(`
+        const slipsResult = await db.exec(`
             SELECT p.*, e.employee_id as emp_code
             FROM payslips p 
             JOIN employees e ON p.employee_id = e.id 

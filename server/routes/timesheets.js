@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const fs = require('fs');
 
@@ -43,7 +43,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
         let successCount = 0;
         let errorList = [];
 
-        db.exec('BEGIN TRANSACTION');
+        await db.exec('BEGIN TRANSACTION');
 
         for (let i = startIndex; i < lines.length; i++) {
             const cols = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
@@ -58,7 +58,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
             if (otHours <= 0) continue; // Skip days with no OT to save space
 
             // Lookup Employee internal ID by employee code (EMP-XXX) within the entity
-            const empCheck = db.exec(`SELECT id FROM employees WHERE employee_id = '${empCode}' AND entity_id = ${entityId}`);
+            const empCheck = await db.exec(`SELECT id FROM employees WHERE employee_id = '${empCode}' AND entity_id = ${entityId}`);
 
             if (empCheck.length === 0) {
                 errorList.push(`Line ${i + 1}: Employee Code ${empCode} not found in this entity.`);
@@ -70,7 +70,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
             // Upsert Timesheet logic using SQLite ON CONFLICT
             try {
                 // Ensure date string is clean
-                db.run(`
+                await db.run(`
                     INSERT INTO timesheets (entity_id, employee_id, date, ot_hours)
                     VALUES (?, ?, ?, ?)
                     ON CONFLICT(entity_id, employee_id, date)
@@ -82,7 +82,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
             }
         }
 
-        db.exec('COMMIT');
+        await db.exec('COMMIT');
         saveDb();
 
         res.json({
@@ -95,7 +95,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
         // Rollback just in case
         try {
             const db = await getDb();
-            db.exec('ROLLBACK');
+            await db.exec('ROLLBACK');
         } catch (e) { }
         res.status(500).json({ error: err.message });
     }
@@ -123,16 +123,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
         query += ` ORDER BY t.date DESC, e.employee_id ASC LIMIT 500`;
 
-        db.exec('BEGIN TRANSACTION');
-        const stmt = db.prepare(query);
-        stmt.bind(params);
-
-        let results = [];
-        while (stmt.step()) {
-            results.push(stmt.getAsObject());
-        }
-        stmt.free();
-        db.exec('COMMIT');
+        await db.exec('BEGIN TRANSACTION');
+        const queryRes = await db.query(query, params);
+        const results = toObjects(queryRes);
+        await db.exec('COMMIT');
 
         res.json(results);
     } catch (err) {

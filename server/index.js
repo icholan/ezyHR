@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { getDb, reloadDb } = require('./db/init');
+const { getDb, reloadDb } = require('./db/pg-init');
 
 console.log('🚀 SERVER RESTARTING - TRANSLATE ROUTE ACTIVE');
 const authRoutes = require('./routes/auth');
@@ -17,7 +17,7 @@ const transmitRoutes = require('./routes/transmit');
 const translateRoutes = require('./routes/translate');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5005;
 
 // Middleware
 app.use((req, res, next) => {

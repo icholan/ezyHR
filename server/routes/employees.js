@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const multer = require('multer');
 const XLSX = require('xlsx');
@@ -45,10 +45,10 @@ router.get('/', authMiddleware, async (req, res) => {
 
         const userId = req.user.id;
         const authSql = `SELECT uer.entity_id FROM user_entity_roles uer WHERE uer.user_id = ? AND uer.entity_id = ?`;
-        const authRes = db.exec(authSql, [userId, entityId]);
+        const authRes = await db.exec(authSql, [userId, entityId]);
         if (authRes.length === 0) {
             const roleSql = `SELECT role FROM user_entity_roles WHERE user_id = ? AND role = 'Admin' LIMIT 1`;
-            const roleRes = db.exec(roleSql, [userId]);
+            const roleRes = await db.exec(roleSql, [userId]);
             if (roleRes.length === 0) {
                 return res.status(403).json({ error: 'Not authorized for this entity' });
             }
@@ -69,7 +69,7 @@ router.get('/', authMiddleware, async (req, res) => {
         }
 
         query += ' ORDER BY employee_id';
-        const result = db.exec(query, params);
+        const result = await db.exec(query, params);
         const emps = toObjects(result);
         res.json(emps);
     } catch (err) {
@@ -88,7 +88,7 @@ router.put('/:id/face', authMiddleware, async (req, res) => {
         if (!descriptor) return res.status(400).json({ error: 'Missing descriptor' });
 
         // Anti-Duplication Check: Compare against all employees in the SAME entity
-        const empsRes = db.exec('SELECT id, full_name, face_descriptor FROM employees WHERE entity_id = ? AND face_descriptor IS NOT NULL', [entityId]);
+        const empsRes = await db.exec('SELECT id, full_name, face_descriptor FROM employees WHERE entity_id = ? AND face_descriptor IS NOT NULL', [entityId]);
         const emps = toObjects(empsRes);
 
         console.log(`[FACE_REG] Checking uniqueness for employee ${employeeId} against ${emps.length} records`);
@@ -116,7 +116,7 @@ router.put('/:id/face', authMiddleware, async (req, res) => {
         }
 
         console.log(`[FACE_REG] SUCCESS: Saving face for employee ${employeeId}`);
-        db.run('UPDATE employees SET face_descriptor = ? WHERE id = ?', [JSON.stringify(descriptor), employeeId]);
+        await db.run('UPDATE employees SET face_descriptor = ? WHERE id = ?', [JSON.stringify(descriptor), employeeId]);
         saveDb();
         res.json({ message: 'Face descriptor saved' });
     } catch (err) {
@@ -133,7 +133,7 @@ router.delete('/:id/face', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         console.log(`[FACE_RESET] Nullifying face for employee ${employeeId}`);
-        db.run('UPDATE employees SET face_descriptor = NULL WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
+        await db.run('UPDATE employees SET face_descriptor = NULL WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
         saveDb();
         res.json({ message: 'Face biometric data reset successfully' });
     } catch (err) {
@@ -161,7 +161,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
             params.push(...groups);
         }
 
-        const result = db.exec(query, params);
+        const result = await db.exec(query, params);
         const employees = toObjects(result);
         if (!employees.length) return res.status(404).json({ error: 'Employee not found or access denied' });
         res.json(employees[0]);
@@ -187,7 +187,7 @@ router.post('/', authMiddleware, photoUpload.single('photo'), async (req, res) =
 
         // Check if national_id already exists in another entity to sync personal details
         if (e.national_id) {
-            const existingResult = db.exec('SELECT * FROM employees WHERE national_id = ? LIMIT 1', [e.national_id]);
+            const existingResult = await db.exec('SELECT * FROM employees WHERE national_id = ? LIMIT 1', [e.national_id]);
             const existing = toObjects(existingResult)[0];
             if (existing) {
                 // Merge personal details from existing record if not provided in request
@@ -206,29 +206,29 @@ router.post('/', authMiddleware, photoUpload.single('photo'), async (req, res) =
             }
         }
 
-        db.run(
+        await db.run(
             `INSERT INTO employees (entity_id, employee_id, full_name, date_of_birth, national_id, nationality, tax_residency, race, gender, language, mobile_number, whatsapp_number, email, highest_education, designation, department, employee_group, employee_grade, date_joined, cessation_date, basic_salary, transport_allowance, meal_allowance, other_allowance, other_deduction, bank_name, bank_account, cpf_applicable, pr_status_start_date, cpf_full_rate_agreed, status, payment_mode, custom_allowances, custom_deductions, site_id, working_days_per_week, rest_day, working_hours_per_day, working_hours_per_week, photo_url, work_pass_type, work_pass_expiry, work_pass_no, work_pass_start_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [entityId || null, e.employee_id || '', e.full_name || '', e.date_of_birth || null, e.national_id || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', e.designation || '', e.department || '', e.employee_group || 'General', e.employee_grade || '', e.date_joined || null, e.cessation_date || null, e.basic_salary || 0, e.transport_allowance || 0, e.meal_allowance || 0, e.other_allowance || 0, e.other_deduction || 0, e.bank_name || '', e.bank_account || '', e.cpf_applicable !== undefined ? e.cpf_applicable : 1, e.pr_status_start_date || null, e.cpf_full_rate_agreed !== undefined ? e.cpf_full_rate_agreed : 0, e.status || 'Active', e.payment_mode || 'Bank Transfer', e.custom_allowances || '{}', e.custom_deductions || '{}', e.site_id || null, e.working_days_per_week || 5.5, e.rest_day || 'Sunday', e.working_hours_per_day || 8, e.working_hours_per_week || 44, photoUrl || e.photo_url || null, e.work_pass_type || null, e.work_pass_expiry || null, e.work_pass_no || null, e.work_pass_start_date || null]
         );
         saveDb();
 
-        const result = db.exec('SELECT * FROM employees WHERE employee_id = ? AND entity_id = ?', [e.employee_id, entityId]);
+        const result = await db.exec('SELECT * FROM employees WHERE employee_id = ? AND entity_id = ?', [e.employee_id, entityId]);
         const created = toObjects(result)[0];
 
-        db.run(
+        await db.run(
             `INSERT INTO employee_kets (employee_id, job_title, employment_start_date, basic_salary, fixed_allowances, working_days_per_week, rest_day, working_hours_per_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [created.id, e.designation || 'Employee', e.date_joined || new Date().toISOString().split('T')[0], e.basic_salary || 0,
             JSON.stringify({ transport: e.transport_allowance || 0, meal: e.meal_allowance || 0 }),
             e.working_days_per_week || 5.5, e.rest_day || 'Sunday', e.working_hours_per_day || 8]
         );
 
-        const leaveTypesResult = db.exec('SELECT * FROM leave_types');
+        const leaveTypesResult = await db.exec('SELECT * FROM leave_types');
         const types = toObjects(leaveTypesResult);
         const year = new Date().getFullYear();
-        types.forEach(lt => {
-            db.run(`INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled, taken, balance) VALUES (?, ?, ?, ?, 0, ?)`,
+        for (const lt of types) {
+            await db.run(`INSERT INTO leave_balances (employee_id, leave_type_id, year, entitled, taken, balance) VALUES (?, ?, ?, ?, 0, ?)`,
                 [created.id, lt.id, year, lt.default_days, lt.default_days]);
-        });
+        }
         saveDb();
         res.status(201).json({ ...created, warning });
     } catch (err) {
@@ -245,21 +245,21 @@ router.put('/:id', authMiddleware, photoUpload.single('photo'), async (req, res)
         const e = req.body;
         const photoUrl = req.file ? `/uploads/photos/${req.file.filename}` : (e.photo_url || null);
 
-        db.run(
+        await db.run(
             `UPDATE employees SET employee_id=?, full_name=?, date_of_birth=?, national_id=?, nationality=?, tax_residency=?, race=?, gender=?, language=?, mobile_number=?, whatsapp_number=?, email=?, highest_education=?, designation=?, department=?, employee_group=?, employee_grade=?, date_joined=?, cessation_date=?, basic_salary=?, transport_allowance=?, meal_allowance=?, other_allowance=?, other_deduction=?, bank_name=?, bank_account=?, cpf_applicable=?, pr_status_start_date=?, cpf_full_rate_agreed=?, status=?, payment_mode=?, custom_allowances=?, custom_deductions=?, site_id=?, working_days_per_week=?, rest_day=?, working_hours_per_day=?, working_hours_per_week=?, photo_url=?, work_pass_type=?, work_pass_expiry=?, work_pass_no=?, work_pass_start_date=? WHERE id=? AND entity_id=?`,
             [e.employee_id || '', e.full_name || '', e.date_of_birth || null, e.national_id || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', e.designation || '', e.department || '', e.employee_group || 'General', e.employee_grade || '', e.date_joined || null, e.cessation_date || null, e.basic_salary || 0, e.transport_allowance || 0, e.meal_allowance || 0, e.other_allowance || 0, e.other_deduction || 0, e.bank_name || '', e.bank_account || '', e.cpf_applicable !== undefined ? e.cpf_applicable : 1, e.pr_status_start_date || null, e.cpf_full_rate_agreed !== undefined ? e.cpf_full_rate_agreed : 0, e.status || 'Active', e.payment_mode || 'Bank Transfer', e.custom_allowances || '{}', e.custom_deductions || '{}', e.site_id || null, e.working_days_per_week || 5.5, e.rest_day || 'Sunday', e.working_hours_per_day || 8, e.working_hours_per_week || 44, photoUrl || null, e.work_pass_type || null, e.work_pass_expiry || null, e.work_pass_no || null, e.work_pass_start_date || null, req.params.id || null, entityId || null]
         );
 
         // SYNC: Update personal details across all other entities for same national_id
         if (e.national_id) {
-            db.run(
+            await db.run(
                 `UPDATE employees SET full_name=?, date_of_birth=?, nationality=?, tax_residency=?, race=?, gender=?, language=?, mobile_number=?, whatsapp_number=?, email=?, highest_education=?, photo_url=? WHERE national_id = ? AND entity_id != ?`,
                 [e.full_name || '', e.date_of_birth || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', photoUrl || null, e.national_id, entityId]
             );
         }
 
         saveDb();
-        const result = db.exec('SELECT * FROM employees WHERE id = ?', [req.params.id]);
+        const result = await db.exec('SELECT * FROM employees WHERE id = ?', [req.params.id]);
         res.json(toObjects(result)[0]);
     } catch (err) {
         console.error('[PUT_EMPLOYEE_ERROR]', err);
@@ -271,10 +271,10 @@ router.put('/:id', authMiddleware, photoUpload.single('photo'), async (req, res)
 router.delete('/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run('DELETE FROM employee_kets WHERE employee_id = ?', [req.params.id]);
-        db.run('DELETE FROM leave_balances WHERE employee_id = ?', [req.params.id]);
-        db.run('DELETE FROM leave_requests WHERE employee_id = ?', [req.params.id]);
-        db.run('DELETE FROM employees WHERE id = ?', [req.params.id]);
+        await db.run('DELETE FROM employee_kets WHERE employee_id = ?', [req.params.id]);
+        await db.run('DELETE FROM leave_balances WHERE employee_id = ?', [req.params.id]);
+        await db.run('DELETE FROM leave_requests WHERE employee_id = ?', [req.params.id]);
+        await db.run('DELETE FROM employees WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Employee deleted' });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -286,21 +286,21 @@ router.post('/:id/transfer', authMiddleware, async (req, res) => {
         const db = await getDb();
         const currentEntityId = req.user.entityId;
         const { targetEntityId } = req.body;
-        db.exec('BEGIN TRANSACTION');
+        await db.exec('BEGIN TRANSACTION');
         try {
-            const empResult = db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [req.params.id, currentEntityId]);
+            const empResult = await db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [req.params.id, currentEntityId]);
             const emp = toObjects(empResult)[0];
-            db.run(
+            await db.run(
                 `INSERT INTO employees (entity_id, employee_id, full_name, date_of_birth, national_id, nationality, tax_residency, race, gender, language, mobile_number, whatsapp_number, email, highest_education, designation, department, employee_group, employee_grade, date_joined, basic_salary, transport_allowance, meal_allowance, other_allowance, other_deduction, bank_name, bank_account, cpf_applicable, status, payment_mode, custom_allowances, custom_deductions, site_id) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [targetEntityId, emp.employee_id || '', emp.full_name || '', emp.date_of_birth || null, emp.national_id || null, emp.nationality || 'Singapore Citizen', emp.tax_residency || 'Resident', emp.race || 'Chinese', emp.gender || '', emp.language || '', emp.mobile_number || '', emp.whatsapp_number || '', emp.email || '', emp.highest_education || 'Others', emp.designation || '', emp.department || '', emp.employee_group || 'General', emp.employee_grade || '', emp.date_joined || null, emp.basic_salary || 0, emp.transport_allowance || 0, emp.meal_allowance || 0, emp.other_allowance || 0, emp.other_deduction || 0, emp.bank_name || '', emp.bank_account || '', emp.cpf_applicable !== undefined ? emp.cpf_applicable : 1, 'Active', emp.payment_mode || 'Bank Transfer', emp.custom_allowances || '{}', emp.custom_deductions || '{}', emp.site_id || null]
             );
-            const newEmpId = db.exec(`SELECT last_insert_rowid() AS id`)[0].values[0][0];
-            db.run('UPDATE employees SET status = \'Transferred\' WHERE id = ?', [emp.id]);
-            db.exec('COMMIT');
+            const newEmpId = (await db.exec(`SELECT last_insert_rowid() AS id`))[0].values[0][0];
+            await db.run('UPDATE employees SET status = \'Transferred\' WHERE id = ?', [emp.id]);
+            await db.exec('COMMIT');
             saveDb();
             res.json({ message: 'Employee transferred', newId: newEmpId });
-        } catch (err) { db.exec('ROLLBACK'); throw err; }
+        } catch (err) { await db.exec('ROLLBACK'); throw err; }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -312,17 +312,17 @@ router.post('/bulk-custom', authMiddleware, async (req, res) => {
         if (!Array.isArray(records)) {
             return res.status(400).json({ error: 'Invalid input: records must be an array' });
         }
-        db.exec('BEGIN TRANSACTION');
+        await db.exec('BEGIN TRANSACTION');
         try {
-            records.forEach(rc => {
-                if (!rc.id) return;
-                db.run(`UPDATE employees SET custom_allowances = ?, custom_deductions = ? WHERE id = ? AND entity_id = ?`,
+            for (const rc of records) {
+                if (!rc.id) continue;
+                await db.run(`UPDATE employees SET custom_allowances = ?, custom_deductions = ? WHERE id = ? AND entity_id = ?`,
                     [JSON.stringify(rc.custom_allowances || {}), JSON.stringify(rc.custom_deductions || {}), rc.id, req.user.entityId]);
-            });
-            db.exec('COMMIT');
+            }
+            await db.exec('COMMIT');
             saveDb();
             res.json({ message: 'Bulk modifiers applied' });
-        } catch (err) { db.exec('ROLLBACK'); throw err; }
+        } catch (err) { await db.exec('ROLLBACK'); throw err; }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -334,7 +334,7 @@ router.post('/bulk-import', authMiddleware, upload.single('file'), async (req, r
         const workbook = XLSX.readFile(req.file.path);
         const data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
         const results = { processed: 0, skipped: 0, errors: [] };
-        db.exec('BEGIN TRANSACTION');
+        await db.exec('BEGIN TRANSACTION');
         try {
             for (const row of data) {
                 const e = {
@@ -364,11 +364,11 @@ router.post('/bulk-import', authMiddleware, upload.single('file'), async (req, r
 
                 // Use REPLACE INTO or check for existence? 
                 // Let's use a check to avoid duplicates or optionally update
-                const existing = db.exec('SELECT id FROM employees WHERE entity_id = ? AND employee_id = ?', [req.user.entityId, e.employee_id]);
+                const existing = await db.exec('SELECT id FROM employees WHERE entity_id = ? AND employee_id = ?', [req.user.entityId, e.employee_id]);
 
                 if (existing.length > 0 && existing[0].values.length > 0) {
                     const id = existing[0].values[0][0];
-                    db.run(`UPDATE employees SET 
+                    await db.run(`UPDATE employees SET 
                         full_name = ?, national_id = ?, nationality = ?, basic_salary = ?, 
                         employee_group = ?, gender = ?, date_of_birth = ?, phone = ?, email = ?, address = ?, 
                         bank_name = ?, bank_account = ?, working_days_per_week = ?, rest_day = ?, 
@@ -381,7 +381,7 @@ router.post('/bulk-import', authMiddleware, upload.single('file'), async (req, r
                         e.working_hours_per_day, e.working_hours_per_week, e.other_deduction,
                         e.status, e.cessation_date, e.pr_status_start_date, id]);
                 } else {
-                    db.run(`INSERT INTO employees (
+                    await db.run(`INSERT INTO employees (
                         entity_id, employee_id, full_name, national_id, nationality, basic_salary, 
                         employee_group, gender, date_of_birth, phone, email, address, 
                         bank_name, bank_account, working_days_per_week, rest_day, 
@@ -396,10 +396,10 @@ router.post('/bulk-import', authMiddleware, upload.single('file'), async (req, r
                 }
                 results.processed++;
             }
-            db.exec('COMMIT');
+            await db.exec('COMMIT');
             saveDb();
             res.json({ message: 'Import completed', ...results });
-        } catch (err) { db.exec('ROLLBACK'); throw err; }
+        } catch (err) { await db.exec('ROLLBACK'); throw err; }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

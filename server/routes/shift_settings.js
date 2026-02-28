@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 
 // Minimal helper to safely convert SQL.js arrays to objects
 const toObjects = (res) => {
@@ -27,7 +27,7 @@ router.get('/', async (req, res) => {
 
     try {
         const db = await getDb();
-        const results = db.exec('SELECT * FROM shift_settings WHERE entity_id = ? ORDER BY shift_name ASC', [entityId]);
+        const results = await db.exec('SELECT * FROM shift_settings WHERE entity_id = ? ORDER BY shift_name ASC', [entityId]);
         res.json(toObjects(results));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
 
     try {
         const db = await getDb();
-        db.run(`
+        await db.run(`
             INSERT INTO shift_settings (
                 entity_id, shift_name, start_time, end_time, ot_start_time, 
                 late_arrival_threshold_mins, early_departure_threshold_mins,
@@ -82,7 +82,7 @@ router.post('/', async (req, res) => {
 
         saveDb();
 
-        const result = db.exec('SELECT * FROM shift_settings WHERE id = last_insert_rowid()');
+        const result = await db.exec('SELECT * FROM shift_settings WHERE id = last_insert_rowid()');
         res.status(201).json(toObjects(result)[0]);
     } catch (err) {
         if (err.message.includes('UNIQUE constraint failed')) {
@@ -111,7 +111,7 @@ router.put('/:id', async (req, res) => {
 
     try {
         const db = await getDb();
-        db.run(`
+        await db.run(`
             UPDATE shift_settings SET 
                 shift_name = ?, start_time = ?, end_time = ?, ot_start_time = ?, 
                 late_arrival_threshold_mins = ?, early_departure_threshold_mins = ?,
@@ -131,7 +131,7 @@ router.put('/:id', async (req, res) => {
 
         saveDb();
 
-        const result = db.exec('SELECT * FROM shift_settings WHERE id = ?', [req.params.id]);
+        const result = await db.exec('SELECT * FROM shift_settings WHERE id = ?', [req.params.id]);
         if (result.length === 0) {
             return res.status(404).json({ error: 'Shift setting not found' });
         }
@@ -148,7 +148,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         const db = await getDb();
-        db.run('DELETE FROM shift_settings WHERE id = ?', [req.params.id]);
+        await db.run('DELETE FROM shift_settings WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Shift setting deleted successfully' });
     } catch (err) {

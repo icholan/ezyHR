@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const nodemailer = require('nodemailer');
-const { getDb } = require('../db/init');
+const { getDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 // Utility to convert sql.js results to objects
@@ -28,7 +28,7 @@ router.post('/email', authMiddleware, async (req, res) => {
         const db = await getDb();
 
         // 1. Fetch employee email
-        const empRes = db.exec('SELECT full_name, email FROM employees WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
+        const empRes = await db.exec('SELECT full_name, email FROM employees WHERE id = ? AND entity_id = ?', [employeeId, entityId]);
         const employee = toObjects(empRes)[0];
 
         if (!employee || !employee.email) {

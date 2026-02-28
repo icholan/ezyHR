@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const { calculateIR8A, generateAISPayload } = require('../engine/iras-engine');
 const router = express.Router();
@@ -21,7 +21,7 @@ router.get('/forms/:year', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const year = req.params.year;
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT f.*, e.employee_id as emp_code, e.full_name 
             FROM iras_forms f 
             JOIN employees e ON f.employee_id = e.id 
@@ -41,7 +41,7 @@ router.post('/generate/:year', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // Fetch aggregation from payslips
-        const aggregations = db.exec(`
+        const aggregations = await db.exec(`
             SELECT p.employee_id as employee_id_db, e.employee_id as emp_code, e.full_name, e.nationality, e.cessation_date,
                    SUM(p.gross_pay) as total_gross,
                    SUM(p.bonus) as total_bonus,
@@ -67,17 +67,17 @@ router.post('/generate/:year', authMiddleware, async (req, res) => {
             }
 
             // Fetch BIKs
-            const biks = toObjects(db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [row.employee_id_db, year]));
+            const biks = toObjects(await db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [row.employee_id_db, year]));
 
             // Fetch Share Options
-            const shares = toObjects(db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [row.employee_id_db, year]));
+            const shares = toObjects(await db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [row.employee_id_db, year]));
 
             // Fetch full employee for details
-            const employee = toObjects(db.exec('SELECT * FROM employees WHERE id = ?', [row.employee_id_db]))[0];
+            const employee = toObjects((await db.exec('SELECT * FROM employees WHERE id = ?', [row.employee_id_db])))[0];
 
             const ir8aData = calculateIR8A(employee, row, biks, shares);
 
-            db.run(
+            await db.run(
                 `INSERT INTO iras_forms (entity_id, employee_id, year, year_of_assessment, form_type, data_json, form_data, status, version) VALUES (?, ?, ?, ?, 'IR8A', ?, ?, 'Generated', 1)`,
                 [entityId, row.employee_id_db, year, year, JSON.stringify(ir8aData), JSON.stringify(ir8aData)]
             );
@@ -85,7 +85,7 @@ router.post('/generate/:year', authMiddleware, async (req, res) => {
         }
 
         // Audit Log
-        db.run(
+        await db.run(
             `INSERT INTO submission_logs (entity_id, user_id, username, submission_type, file_type, records_count) VALUES (?, ?, ?, 'IR8A Original', 'IR8A', ?)`,
             [entityId, req.user.id, req.user.username, recordsCount]
         );
@@ -110,13 +110,13 @@ router.post('/amend/:year/:empId', authMiddleware, async (req, res) => {
         if (year > currentYear + 1) return res.status(400).json({ error: "Cannot amend forms beyond 1 advance year." });
 
         // Get latest version
-        const vResult = db.exec('SELECT MAX(version) as max_v FROM iras_forms WHERE entity_id = ? AND employee_id = ? AND year = ? AND form_type = \'IR8A\'', [entityId, empId, year]);
+        const vResult = await db.exec('SELECT MAX(version) as max_v FROM iras_forms WHERE entity_id = ? AND employee_id = ? AND year = ? AND form_type = \'IR8A\'', [entityId, empId, year]);
         const maxV = toObjects(vResult)[0]?.max_v || 0;
 
         if (maxV === 0) return res.status(400).json({ error: "No original form found to amend." });
 
         // Recalculate Aggregations
-        const aggregations = db.exec(`
+        const aggregations = await db.exec(`
             SELECT p.employee_id as employee_id_db, 
                    SUM(p.gross_pay) as total_gross, 
                    SUM(p.bonus) as total_bonus, 
@@ -130,19 +130,19 @@ router.post('/amend/:year/:empId', authMiddleware, async (req, res) => {
         const aRow = toObjects(aggregations)[0];
 
         // Fetch BIKs & Shares
-        const biks = toObjects(db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [empId, year]));
-        const shares = toObjects(db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [empId, year]));
-        const employee = toObjects(db.exec('SELECT * FROM employees WHERE id = ?', [empId]))[0];
+        const biks = toObjects(await db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [empId, year]));
+        const shares = toObjects(await db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [empId, year]));
+        const employee = toObjects((await db.exec('SELECT * FROM employees WHERE id = ?', [empId])))[0];
 
         const ir8aData = calculateIR8A(employee, aRow, biks, shares);
 
-        db.run(
+        await db.run(
             `INSERT INTO iras_forms (entity_id, employee_id, year, year_of_assessment, form_type, data_json, form_data, status, version) VALUES (?, ?, ?, ?, 'IR8A', ?, ?, 'Amended', ?)`,
             [entityId, empId, year, year, JSON.stringify(ir8aData), JSON.stringify(ir8aData), maxV + 1]
         );
 
         // Audit Log
-        db.run(
+        await db.run(
             `INSERT INTO submission_logs (entity_id, user_id, username, submission_type, file_type, records_count) VALUES (?, ?, ?, 'IR8A Amendment', 'IR8A', 1)`,
             [entityId, req.user.id, req.user.username]
         );
@@ -160,7 +160,7 @@ router.post('/amend/:year/:empId', authMiddleware, async (req, res) => {
 router.get('/cessation-check', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT * FROM employees 
             WHERE entity_id = ? 
             AND cessation_date IS NOT NULL 
@@ -180,7 +180,7 @@ router.get('/export-ais-json/:year', authMiddleware, async (req, res) => {
         const year = parseInt(req.params.year);
         const entityId = req.user.entityId;
 
-        const formsResult = db.exec(`
+        const formsResult = await db.exec(`
             SELECT f.data_json 
             FROM iras_forms f 
             WHERE f.entity_id = ? AND f.year = ? AND f.status != 'Void'
@@ -191,7 +191,7 @@ router.get('/export-ais-json/:year', authMiddleware, async (req, res) => {
         if (forms.length === 0) return res.status(404).json({ error: 'No generated forms found for this year.' });
 
         const ir8aRecords = forms.map(f => JSON.parse(f.data_json));
-        const entity = toObjects(db.exec('SELECT * FROM entities WHERE id = ?', [entityId]))[0];
+        const entity = toObjects((await db.exec('SELECT * FROM entities WHERE id = ?', [entityId])))[0];
 
         const payload = generateAISPayload(entity, year, ir8aRecords);
         res.json(payload);
@@ -204,7 +204,7 @@ router.get('/export-ais-json/:year', authMiddleware, async (req, res) => {
 router.get('/benefits/:empId/:year', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [req.params.empId, req.params.year]);
+        const result = await db.exec('SELECT * FROM iras_benefits_in_kind WHERE employee_id = ? AND year = ?', [req.params.empId, req.params.year]);
         res.json(toObjects(result));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -213,7 +213,7 @@ router.post('/benefits', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { employee_id, year, category, description, value, period_from, period_to } = req.body;
-        db.run(
+        await db.run(
             `INSERT INTO iras_benefits_in_kind (employee_id, year, category, description, value, period_from, period_to) VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [employee_id, year, category, description, value, period_from, period_to]
         );
@@ -225,7 +225,7 @@ router.post('/benefits', authMiddleware, async (req, res) => {
 router.delete('/benefits/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run('DELETE FROM iras_benefits_in_kind WHERE id = ?', [req.params.id]);
+        await db.run('DELETE FROM iras_benefits_in_kind WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Deleted' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -235,7 +235,7 @@ router.delete('/benefits/:id', authMiddleware, async (req, res) => {
 router.get('/shares/:empId/:year', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [req.params.empId, req.params.year]);
+        const result = await db.exec('SELECT * FROM iras_share_options WHERE employee_id = ? AND year = ?', [req.params.empId, req.params.year]);
         res.json(toObjects(result));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -244,7 +244,7 @@ router.post('/shares', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { employee_id, year, plan_type, grant_date, exercise_date, exercise_price, market_value, shares_count, taxable_profit } = req.body;
-        db.run(
+        await db.run(
             `INSERT INTO iras_share_options (employee_id, year, plan_type, grant_date, exercise_date, exercise_price, market_value, shares_count, taxable_profit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [employee_id, year, plan_type, grant_date, exercise_date, exercise_price, market_value, shares_count, taxable_profit]
         );
@@ -256,7 +256,7 @@ router.post('/shares', authMiddleware, async (req, res) => {
 router.delete('/shares/:id', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        db.run('DELETE FROM iras_share_options WHERE id = ?', [req.params.id]);
+        await db.run('DELETE FROM iras_share_options WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Deleted' });
     } catch (e) { res.status(500).json({ error: e.message }); }
@@ -268,7 +268,7 @@ router.get('/audit-logs', authMiddleware, async (req, res) => {
         const db = await getDb();
         const entityId = req.user.entityId;
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
-        const result = db.exec(
+        const result = await db.exec(
             'SELECT * FROM submission_logs WHERE entity_id = ? ORDER BY timestamp DESC LIMIT 100',
             [entityId]
         );
@@ -283,7 +283,7 @@ router.get('/validate/:year', authMiddleware, async (req, res) => {
         const year = parseInt(req.params.year);
         const entityId = req.user.entityId;
 
-        const formsResult = db.exec(`
+        const formsResult = await db.exec(`
             SELECT f.*, e.full_name, e.employee_id as emp_code
             FROM iras_forms f
             JOIN employees e ON f.employee_id = e.id
@@ -335,11 +335,11 @@ router.post('/ir21/draft/:empId', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const currentYear = new Date().getFullYear();
 
-        const employee = toObjects(db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [empId, entityId]))[0];
+        const employee = toObjects((await db.exec('SELECT * FROM employees WHERE id = ? AND entity_id = ?', [empId, entityId])))[0];
         if (!employee) return res.status(404).json({ error: 'Employee not found' });
 
         // Aggregate YTD income
-        const ytdResult = db.exec(`
+        const ytdResult = await db.exec(`
             SELECT SUM(p.gross_pay) as total_gross, SUM(p.bonus) as total_bonus, SUM(p.cpf_employee) as total_cpf
             FROM payslips p
             JOIN payroll_runs pr ON p.payroll_run_id = pr.id
@@ -374,7 +374,7 @@ router.post('/submit-sffs/:year', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // 1. Fetch data for payload
-        const formsResult = db.exec(`
+        const formsResult = await db.exec(`
             SELECT f.data_json 
             FROM iras_forms f 
             WHERE f.entity_id = ? AND f.year = ? AND f.status != 'Void'
@@ -385,14 +385,14 @@ router.post('/submit-sffs/:year', authMiddleware, async (req, res) => {
         if (forms.length === 0) return res.status(404).json({ error: 'No validated forms found to submit.' });
 
         const ir8aRecords = forms.map(f => JSON.parse(f.data_json));
-        const entity = toObjects(db.exec('SELECT * FROM entities WHERE id = ?', [entityId]))[0];
+        const entity = toObjects((await db.exec('SELECT * FROM entities WHERE id = ?', [entityId])))[0];
 
         // 2. Generate AIS 2.0 Payload
         const payload = generateAISPayload(entity, year, ir8aRecords);
         const submissionId = `SFFS-${year}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
         // 3. Store Submission (Pending)
-        db.run(
+        await db.run(
             `INSERT INTO iras_submissions (entity_id, submission_id, year, type, status, payload_json) VALUES (?, ?, ?, 'AIS', 'Pending', ?)`,
             [entityId, submissionId, year, JSON.stringify(payload)]
         );
@@ -421,7 +421,7 @@ router.post('/submit-sffs/:year', authMiddleware, async (req, res) => {
 router.get('/submission/:submissionId', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT * FROM iras_submissions WHERE submission_id = ? AND entity_id = ?', [req.params.submissionId, req.user.entityId]);
+        const result = await db.exec('SELECT * FROM iras_submissions WHERE submission_id = ? AND entity_id = ?', [req.params.submissionId, req.user.entityId]);
         const sub = toObjects(result)[0];
         if (!sub) return res.status(404).json({ error: 'Submission not found' });
         res.json(sub);
@@ -431,7 +431,7 @@ router.get('/submission/:submissionId', authMiddleware, async (req, res) => {
 router.get('/submissions/history/:year', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT * FROM iras_submissions WHERE year = ? AND entity_id = ? ORDER BY timestamp DESC', [req.params.year, req.user.entityId]);
+        const result = await db.exec('SELECT * FROM iras_submissions WHERE year = ? AND entity_id = ? ORDER BY timestamp DESC', [req.params.year, req.user.entityId]);
         res.json(toObjects(result));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -440,7 +440,7 @@ router.get('/submissions/history/:year', authMiddleware, async (req, res) => {
 router.get('/ns-claims', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT n.*, e.full_name as employee_name FROM ns_claims n JOIN employees e ON n.employee_id = e.id WHERE n.entity_id = ? ORDER BY n.start_date DESC', [req.user.entityId]);
+        const result = await db.exec('SELECT n.*, e.full_name as employee_name FROM ns_claims n JOIN employees e ON n.employee_id = e.id WHERE n.entity_id = ? ORDER BY n.start_date DESC', [req.user.entityId]);
         res.json(toObjects(result));
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -449,7 +449,7 @@ router.post('/ns-claims', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const { employee_id, start_date, end_date, total_days, claim_amount } = req.body;
-        db.run(
+        await db.run(
             `INSERT INTO ns_claims (entity_id, employee_id, start_date, end_date, total_days, claim_amount) VALUES (?, ?, ?, ?, ?, ?)`,
             [req.user.entityId, employee_id, start_date, end_date, total_days, claim_amount]
         );
@@ -466,7 +466,7 @@ router.get('/compliance-readiness', authMiddleware, async (req, res) => {
         const checks = [];
 
         // 1. Entity Checks
-        const entity = toObjects(db.exec('SELECT * FROM entities WHERE id = ?', [entityId]))[0];
+        const entity = toObjects((await db.exec('SELECT * FROM entities WHERE id = ?', [entityId])))[0];
         checks.push({
             category: 'Entity',
             name: 'Business UEN',
@@ -475,7 +475,7 @@ router.get('/compliance-readiness', authMiddleware, async (req, res) => {
         });
 
         // 2. Employee Data Quality
-        const emps = toObjects(db.exec('SELECT * FROM employees WHERE entity_id = ?', [entityId]));
+        const emps = toObjects(await db.exec('SELECT * FROM employees WHERE entity_id = ?', [entityId]));
         const missingNric = emps.filter(e => !e.national_id).length;
         const missingAddr = emps.filter(e => !e.address_block && !e.address_street).length;
 
@@ -494,7 +494,7 @@ router.get('/compliance-readiness', authMiddleware, async (req, res) => {
         });
 
         // 3. Payroll Readiness
-        const formsCount = toObjects(db.exec('SELECT COUNT(*) as count FROM iras_forms WHERE entity_id = ?', [entityId]))[0]?.count || 0;
+        const formsCount = toObjects((await db.exec('SELECT COUNT(*) as count FROM iras_forms WHERE entity_id = ?', [entityId])))[0]?.count || 0;
         checks.push({
             category: 'Payroll',
             name: 'IR8A Generation Status',
@@ -515,7 +515,7 @@ router.get('/cpf-excess', authMiddleware, async (req, res) => {
         if (!entityId) return res.status(400).json({ error: 'Missing entity context' });
         // Employees whose annual ordinary wages exceed the CPF ceiling
         const currentYear = new Date().getFullYear();
-        const result = db.exec(`
+        const result = await db.exec(`
             SELECT e.id, e.employee_id, e.full_name, SUM(p.basic_salary) as annual_ow
             FROM payslips p
             JOIN payroll_runs pr ON p.payroll_run_id = pr.id

@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
 
 const router = express.Router();
@@ -15,7 +15,7 @@ router.post('/login', async (req, res) => {
         }
 
         const db = await getDb();
-        const user = db.exec(`SELECT * FROM users WHERE username = '${username}'`);
+        const user = await db.exec(`SELECT * FROM users WHERE username = '${username}'`);
 
         if (!user.length || !user[0].values.length) {
             return res.status(401).json({ error: 'Invalid credentials' });
@@ -68,7 +68,7 @@ router.post('/register', async (req, res) => {
 
         const db = await getDb();
         const hash = bcrypt.hashSync(password, 10);
-        db.run(
+        await db.run(
             `INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)`,
             [username, hash, fullName]
         );
@@ -89,7 +89,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
         }
 
         const db = await getDb();
-        const userResult = db.exec('SELECT * FROM users WHERE id = ?', [req.user.id]);
+        const userResult = await db.exec('SELECT * FROM users WHERE id = ?', [req.user.id]);
         const userList = toObjects(userResult);
 
         if (!userList.length) return res.status(404).json({ error: 'User not found' });
@@ -100,7 +100,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
         }
 
         const newHash = bcrypt.hashSync(newPassword, 10);
-        db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
+        await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
         saveDb();
 
         res.json({ message: 'Password updated successfully' });

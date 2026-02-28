@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -18,7 +18,7 @@ function toObjects(result) {
 router.get('/types', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
-        const result = db.exec('SELECT * FROM leave_types ORDER BY id');
+        const result = await db.exec('SELECT * FROM leave_types ORDER BY id');
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -29,7 +29,7 @@ router.get('/types', authMiddleware, async (req, res) => {
 async function computeDynamicBalances(db, employeeId, yearString) {
     const year = parseInt(yearString, 10);
     // 1. Get raw balances
-    const balResult = db.exec(`
+    const balResult = await db.exec(`
         SELECT lb.*, lt.name as leave_type_name, e.full_name as employee_name, e.employee_id as employee_code, e.date_joined, e.employee_grade, e.entity_id as entity_id, en.logo_url,
                e.email, e.whatsapp_number, e.mobile_number
         FROM leave_balances lb
@@ -54,11 +54,11 @@ async function computeDynamicBalances(db, employeeId, yearString) {
 
     // Calculate Unpaid Leave and AWOL days to deduct from service period
     // Find IDs for Unpaid Leave and AWOL dynamically
-    const unpaidTypeRes = db.exec("SELECT id FROM leave_types WHERE name IN ('Unpaid Leave', 'AWOL')");
+    const unpaidTypeRes = await db.exec("SELECT id FROM leave_types WHERE name IN ('Unpaid Leave', 'AWOL')");
     const unpaidTypeIds = unpaidTypeRes.length ? unpaidTypeRes[0].values.map(v => v[0]) : [8];
     const placeholders = unpaidTypeIds.map(() => '?').join(',');
 
-    const unpaidRes = db.exec(`
+    const unpaidRes = await db.exec(`
         SELECT SUM(days) as total_unpaid 
         FROM leave_requests 
         WHERE employee_id = ? AND status = 'Approved' AND leave_type_id IN (${placeholders})
@@ -66,7 +66,7 @@ async function computeDynamicBalances(db, employeeId, yearString) {
     `, [employeeId, ...unpaidTypeIds, queryYearStart.toISOString().split('T')[0], queryYearEnd.toISOString().split('T')[0]]);
     const totalUnpaidDays = unpaidRes[0]?.values[0][0] || 0;
 
-    const awolRes = db.exec(`
+    const awolRes = await db.exec(`
         SELECT COUNT(*) as total_awol 
         FROM attendance_remarks 
         WHERE employee_id = ? AND (remark_type = 'AWOL' OR remark_type = 'Absent')
@@ -115,7 +115,7 @@ async function computeDynamicBalances(db, employeeId, yearString) {
     totalCompletedMonthsTillDate = Math.max(0, totalCompletedMonthsTillDate);
 
     // Fetch Grade Policies
-    const polResult = db.exec('SELECT * FROM leave_policies WHERE employee_grade = ? AND entity_id = ?', [emp.employee_grade, emp.entity_id]);
+    const polResult = await db.exec('SELECT * FROM leave_policies WHERE employee_grade = ? AND entity_id = ?', [emp.employee_grade, emp.entity_id]);
     const policies = toObjects(polResult);
 
     balances = balances.map(lb => {
@@ -201,7 +201,7 @@ router.get('/balances/:employeeId/:year', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // Verify employee belongs to this entity
-        const empRes = db.exec('SELECT id FROM employees WHERE id = ? AND entity_id = ?', [req.params.employeeId, entityId]);
+        const empRes = await db.exec('SELECT id FROM employees WHERE id = ? AND entity_id = ?', [req.params.employeeId, entityId]);
         if (!empRes.length || !empRes[0].values.length) {
             return res.status(404).json({ error: 'Employee not found or access denied' });
         }
@@ -233,7 +233,7 @@ router.get('/balances-all/:year', authMiddleware, async (req, res) => {
             params.push(...groups);
         }
 
-        const empResult = db.exec(sql, params);
+        const empResult = await db.exec(sql, params);
         const employees = toObjects(empResult);
 
         let allBalances = [];
@@ -276,7 +276,7 @@ router.get('/requests', authMiddleware, async (req, res) => {
 
         sql += ` ORDER BY lr.created_at DESC`;
 
-        const result = db.exec(sql, params);
+        const result = await db.exec(sql, params);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -303,7 +303,7 @@ router.post('/request', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: `Insufficient annual entitlement. Max available for this year: ${leaveTypeBal.entitled} days.` });
         }
 
-        db.run(
+        await db.run(
             `INSERT INTO leave_requests (employee_id, leave_type_id, start_date, end_date, days, reason, status) VALUES (?, ?, ?, ?, ?, ?, 'Pending')`,
             [employee_id, leave_type_id, start_date, end_date, days, reason]
         );
@@ -321,7 +321,7 @@ router.put('/request/:id/approve', authMiddleware, async (req, res) => {
         const db = await getDb();
 
         // Get the request and verify entity
-        const reqResult = db.exec(`
+        const reqResult = await db.exec(`
             SELECT lr.*, e.entity_id 
             FROM leave_requests lr 
             JOIN employees e ON lr.employee_id = e.id 
@@ -334,11 +334,11 @@ router.put('/request/:id/approve', authMiddleware, async (req, res) => {
         if (lr.status !== 'Pending') return res.status(400).json({ error: 'Request is not pending' });
 
         // Update status
-        db.run('UPDATE leave_requests SET status = \'Approved\' WHERE id = ?', [req.params.id]);
+        await db.run('UPDATE leave_requests SET status = \'Approved\' WHERE id = ?', [req.params.id]);
 
         // Update balance (only 'taken' is stored statically, 'balance' is dynamic)
         const year = new Date(lr.start_date).getFullYear();
-        db.run(
+        await db.run(
             'UPDATE leave_balances SET taken = taken + ? WHERE employee_id = ? AND leave_type_id = ? AND year = ?',
             [lr.days, lr.employee_id, lr.leave_type_id, year]
         );
@@ -357,14 +357,14 @@ router.put('/request/:id/reject', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // Verify entity ownership
-        const reqResult = db.exec(`
+        const reqResult = await db.exec(`
             SELECT lr.id FROM leave_requests lr 
             JOIN employees e ON lr.employee_id = e.id 
             WHERE lr.id = ? AND e.entity_id = ?
         `, [req.params.id, entityId]);
         if (!reqResult.length || !reqResult[0].values.length) return res.status(404).json({ error: 'Request not found or access denied' });
 
-        db.run('UPDATE leave_requests SET status = \'Rejected\' WHERE id = ?', [req.params.id]);
+        await db.run('UPDATE leave_requests SET status = \'Rejected\' WHERE id = ?', [req.params.id]);
         saveDb();
         res.json({ message: 'Leave rejected' });
     } catch (err) {

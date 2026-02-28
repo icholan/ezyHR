@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -34,7 +34,7 @@ router.get('/', authMiddleware, async (req, res) => {
 
         sql += ' ORDER BY date ASC';
 
-        const result = db.exec(sql, params);
+        const result = await db.exec(sql, params);
         res.json(toObjects(result));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -49,9 +49,9 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, date, description } = req.body;
 
-        db.run('INSERT INTO holidays (entity_id, name, date, description) VALUES (?, ?, ?, ?)', [entityId, name, date, description]);
+        await db.run('INSERT INTO holidays (entity_id, name, date, description) VALUES (?, ?, ?, ?)', [entityId, name, date, description]);
 
-        const result = db.exec('SELECT last_insert_rowid() AS id');
+        const result = await db.exec('SELECT last_insert_rowid() AS id');
         const id = result[0].values[0][0];
 
         saveDb();
@@ -69,7 +69,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
         const { name, date, description } = req.body;
 
-        db.run('UPDATE holidays SET name = ?, date = ?, description = ? WHERE id = ? AND entity_id = ?', [name, date, description, req.params.id, entityId]);
+        await db.run('UPDATE holidays SET name = ?, date = ?, description = ? WHERE id = ? AND entity_id = ?', [name, date, description, req.params.id, entityId]);
         saveDb();
         res.json({ message: 'Holiday updated' });
     } catch (err) {
@@ -84,7 +84,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         const db = await getDb();
         const entityId = req.user.entityId;
 
-        db.run('DELETE FROM holidays WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
+        await db.run('DELETE FROM holidays WHERE id = ? AND entity_id = ?', [req.params.id, entityId]);
         saveDb();
         res.json({ message: 'Holiday deleted' });
     } catch (err) {

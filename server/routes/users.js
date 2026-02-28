@@ -1,6 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
-const { getDb, saveDb } = require('../db/init');
+const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.get('/', authMiddleware, async (req, res) => {
             ORDER BY u.full_name
         `;
 
-        const result = db.exec(query, [entityId]);
+        const result = await db.exec(query, [entityId]);
         const users = toObjects(result).map(u => ({
             ...u,
             managed_groups: (() => { try { return JSON.parse(u.managed_groups); } catch (e) { return []; } })()
@@ -54,13 +54,13 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // Check if username exists globally
-        const existing = db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
+        const existing = await db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
         let userId;
 
         if (existing.length && existing[0].values.length) {
             // User exists, just assign them to this entity if not already
             userId = existing[0].values[0][0];
-            const hasRole = db.exec(`SELECT id FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`, [userId, entityId]);
+            const hasRole = await db.exec(`SELECT id FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`, [userId, entityId]);
             if (hasRole.length && hasRole[0].values.length) {
                 return res.status(400).json({ error: 'User is already assigned to this entity' });
             }
@@ -68,24 +68,24 @@ router.post('/', authMiddleware, async (req, res) => {
             // New user, create them globally
             if (!u.password) return res.status(400).json({ error: 'Password is required for new users' });
             const pwdHash = bcrypt.hashSync(u.password, 10);
-            db.run(`INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)`,
+            await db.run(`INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)`,
                 [u.username, pwdHash, u.full_name]);
 
-            const newUser = db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
+            const newUser = await db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
             userId = newUser[0].values[0][0];
         }
 
         // Assign to Multiple Entities
         if (Array.isArray(u.entityIds) && u.entityIds.length > 0) {
-            u.entityIds.forEach(eid => {
-                db.run(
+            for (const eid of u.entityIds) {
+                await db.run(
                     `INSERT INTO user_entity_roles (user_id, entity_id, role, managed_groups) VALUES (?, ?, ?, ?)`,
                     [userId, eid, u.role, JSON.stringify(u.managed_groups || [])]
                 );
-            });
+            }
         } else {
             // Fallback to current entity if none specified
-            db.run(
+            await db.run(
                 `INSERT INTO user_entity_roles (user_id, entity_id, role, managed_groups) VALUES (?, ?, ?, ?)`,
                 [userId, entityId, u.role, JSON.stringify(u.managed_groups || [])]
             );
@@ -109,10 +109,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const targetUserId = req.params.id;
 
         // Update global full_name if provided
-        db.run(`UPDATE users SET full_name = ? WHERE id = ?`, [u.full_name, targetUserId]);
+        await db.run(`UPDATE users SET full_name = ? WHERE id = ?`, [u.full_name, targetUserId]);
 
         // Update entity role
-        db.run(
+        await db.run(
             `UPDATE user_entity_roles SET role = ?, managed_groups = ? WHERE user_id = ? AND entity_id = ?`,
             [u.role, JSON.stringify(u.managed_groups || []), targetUserId, entityId]
         );
@@ -137,7 +137,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'You cannot remove yourself from the entity' });
         }
 
-        db.run(`DELETE FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`, [targetUserId, entityId]);
+        await db.run(`DELETE FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`, [targetUserId, entityId]);
         saveDb();
         res.json({ message: 'User removed from entity' });
     } catch (err) {
