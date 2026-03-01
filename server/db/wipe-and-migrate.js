@@ -461,7 +461,7 @@ const schema = `
       taxable_profit NUMERIC
     );
 
-    CREATE TABLE IF NOT EXISTS shift_settings_v2 (
+    CREATE TABLE IF NOT EXISTS shift_settings (
       id SERIAL PRIMARY KEY,
       entity_id INTEGER NOT NULL REFERENCES entities(id) ON DELETE CASCADE,
       shift_name VARCHAR(255) NOT NULL,
@@ -487,7 +487,7 @@ const tablesToMigrate = [
   'employee_grades', 'email_domains', 'holidays', 'employees',
   'employee_documents', 'employee_kets', 'leave_types', 'leave_policies',
   'leave_balances', 'leave_requests', 'payroll_runs', 'payslips', 'user_roles',
-  'shift_settings_v2', 'timesheets', 'attendance_remarks', 'submission_logs',
+  'shift_settings', 'timesheets', 'attendance_remarks', 'submission_logs',
   'iras_forms', 'iras_benefits_in_kind', 'iras_submissions', 'ns_claims',
   'iras_share_options'
 ];

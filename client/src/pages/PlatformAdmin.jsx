@@ -128,6 +128,67 @@ export default function PlatformAdmin() {
         }
     };
 
+    const handleApproveTenant = async (tenant) => {
+        const result = await Swal.fire({
+            title: 'Approve Organization?',
+            text: `Are you sure you want to approve "${tenant.name}"? This will allow them to log in and access the system.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Approve',
+            cancelButtonText: 'Not Now',
+            background: 'var(--bg-card)',
+            color: 'var(--text-main)',
+            customClass: {
+                popup: 'glass-card border border-[var(--border-main)] rounded-2xl p-6',
+                confirmButton: 'btn-primary py-2 px-8 rounded-xl',
+                cancelButton: 'px-6 py-2 rounded-xl text-sm font-medium hover:bg-[var(--bg-main)] transition-colors'
+            },
+            buttonsStyling: false
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`/api/admin/tenants/${tenant.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('hrms_token')}`
+                    },
+                    body: JSON.stringify({ status: 'active' })
+                });
+                if (res.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Approved!',
+                        text: 'Organization account is now active.',
+                        confirmButtonText: 'Great',
+                        background: 'var(--bg-card)',
+                        color: 'var(--text-main)',
+                        customClass: {
+                            popup: 'glass-card border border-[var(--border-main)] rounded-2xl p-6',
+                            confirmButton: 'btn-primary py-2 px-8 rounded-xl'
+                        },
+                        buttonsStyling: false
+                    });
+                    fetchData();
+                }
+            } catch (err) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Approval Failed',
+                    text: err.message,
+                    background: 'var(--bg-card)',
+                    color: 'var(--text-main)',
+                    customClass: {
+                        popup: 'glass-card border border-[var(--border-main)] rounded-2xl p-6',
+                        confirmButton: 'btn-primary py-2 px-8 rounded-xl'
+                    },
+                    buttonsStyling: false
+                });
+            }
+        }
+    };
+
     const handleInspectTenant = async (tenant) => {
         setSelectedTenant(tenant);
         setInspectLoading(true);
@@ -260,6 +321,14 @@ export default function PlatformAdmin() {
                                 </td>
                                 <td className="px-6 py-4 text-right">
                                     <div className="flex justify-end gap-2">
+                                        {tenant.status === 'pending' && (
+                                            <button
+                                                onClick={() => handleApproveTenant(tenant)}
+                                                className="p-2 px-3 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white rounded-lg border border-emerald-500/20 transition-all flex items-center gap-1 text-xs font-bold"
+                                            >
+                                                ✅ Approve
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => handleInspectTenant(tenant)}
                                             className="p-2 hover:bg-[var(--brand-primary)]/10 rounded-lg text-[var(--brand-primary)] transition-all flex items-center gap-1 text-xs font-bold"

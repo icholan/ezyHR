@@ -829,7 +829,7 @@ function createSchema(database) {
   `);
 
   database.run(`
-    CREATE TABLE IF NOT EXISTS shift_settings_v2 (
+    CREATE TABLE IF NOT EXISTS shift_settings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       entity_id INTEGER NOT NULL,
       shift_name TEXT NOT NULL,

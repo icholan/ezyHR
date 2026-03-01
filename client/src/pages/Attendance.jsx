@@ -33,6 +33,12 @@ export default function Attendance() {
     }, [])
 
     useEffect(() => {
+        if (activeEntity?.id) {
+            setSelectedEntityId(activeEntity.id)
+        }
+    }, [activeEntity?.id])
+
+    useEffect(() => {
         if (selectedEntityId) {
             fetchEmployees()
             setSelectedEmployee('') // Reset employee when entity changes

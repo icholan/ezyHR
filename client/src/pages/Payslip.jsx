@@ -152,7 +152,7 @@ export default function Payslip() {
             const remainingOther = ps.other_deductions - customDeductionsTotal;
             if (remainingOther > 0) deductionsRows.push(['Other Deductions', formatCurrency(remainingOther)]);
 
-            deductionsRows.push([{ content: 'Total Deductions', styles: { fontStyle: 'bold' } }, { content: formatCurrency(ps.cpf_employee + ps.shg_deduction + ps.other_deductions), styles: { fontStyle: 'bold' } }]);
+            deductionsRows.push([{ content: 'Total Deductions', styles: { fontStyle: 'bold' } }, { content: formatCurrency(Number(ps.cpf_employee) + Number(ps.shg_deduction) + Number(ps.other_deductions)), styles: { fontStyle: 'bold' } }]);
 
             // Deductions Table
             autoTable(doc, {
@@ -371,7 +371,7 @@ export default function Payslip() {
     if (!payslip) return <div className="text-center py-20 text-[var(--text-muted)]">Payslip not found</div>
 
     const ps = payslip
-    const totalDeductions = ps.cpf_employee + ps.shg_deduction + ps.other_deductions
+    const totalDeductions = Number(ps.cpf_employee) + Number(ps.shg_deduction) + Number(ps.other_deductions)
 
     const timesheetTotals = ps.timesheets?.reduce((acc, t) => ({
         normal: acc.normal + (parseFloat(t.normal_hours) || 0),

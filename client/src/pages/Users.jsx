@@ -44,6 +44,8 @@ export default function Users() {
         }
     }
 
+    const { activeEntity } = useAuth()
+
     useEffect(() => {
         if (role && role !== 'Admin') {
             toast.error('Unauthorized access');

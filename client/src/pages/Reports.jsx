@@ -91,7 +91,7 @@ export default function Reports() {
         if (tab === 'attendance') {
             api.getEmployees().then(setEmployees).catch(() => { });
         }
-    }, [tab])
+    }, [tab, activeEntity?.id])
 
     const months = Array.from({ length: 12 }, (_, i) => ({ value: i + 1, label: new Date(2000, i).toLocaleString('en-SG', { month: 'long' }) }))
 

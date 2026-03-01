@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 const DAYS = [
@@ -33,9 +34,10 @@ function Sites() {
         description: ''
     });
 
+    const { activeEntity } = useAuth();
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [activeEntity?.id]);
 
     const fetchData = async () => {
         try {

@@ -138,8 +138,8 @@ router.post('/run', authMiddleware, async (req, res) => {
                 [emp.id, String(year), String(month).padStart(2, '0')]
             );
 
-            const approvedUnpaidDays = toObjects(leaveResult)[0]?.unpaid_days || 0;
-            const siteReportedAbsenceDays = toObjects(attendanceAbsenceResult)[0]?.absence_days || 0;
+            const approvedUnpaidDays = Number(toObjects(leaveResult)[0]?.unpaid_days || 0);
+            const siteReportedAbsenceDays = Number(toObjects(attendanceAbsenceResult)[0]?.absence_days || 0);
             const unpaidDays = approvedUnpaidDays + siteReportedAbsenceDays;
 
             // Get OT hours and Penalties for this month from timesheets
@@ -157,9 +157,9 @@ router.post('/run', authMiddleware, async (req, res) => {
                 [emp.id, `${year}-${String(month).padStart(2, '0')}`]
             );
             const otData = toObjects(otResult)[0];
-            const totalOtHours = otData.total_ot || 0;
-            const ot15Hours = otData.total_ot_1_5 || 0;
-            const ot20Hours = otData.total_ot_2_0 || 0;
+            const totalOtHours = Number(otData.total_ot || 0);
+            const ot15Hours = Number(otData.total_ot_1_5 || 0);
+            const ot20Hours = Number(otData.total_ot_2_0 || 0);
             // Standard (unclassified) OT = total minus already-categorised hours.
             // Prevents double-counting when ot_hours stores the grand total inclusive of 1.5x/2.0x.
             const otHours = Math.max(0, totalOtHours - ot15Hours - ot20Hours);
@@ -172,8 +172,8 @@ router.post('/run', authMiddleware, async (req, res) => {
             // MOM Overtime Rate: (12 * basic) / (52 * weekly_hours) * 1.5
             // MUST use CONTRACTUAL weekly hours from KET — NOT shift actual hours.
             // Ref: MOM Employment Act, Section 38 & Seventh Schedule.
-            let contractualWeeklyHours = emp.working_hours_per_week || 44;
-            const hoursPerDay = emp.working_hours_per_day || 8;
+            let contractualWeeklyHours = Number(emp.working_hours_per_week || 44);
+            const hoursPerDay = Number(emp.working_hours_per_day || 8);
 
             let daysPerWeek = 5.5;
             const rawDays = emp.working_days_per_week;
@@ -260,9 +260,9 @@ router.post('/run', authMiddleware, async (req, res) => {
             }
 
             let overtimeRate = 0;
-            if (emp.basic_salary && emp.basic_salary > 0) {
+            if (emp.basic_salary && Number(emp.basic_salary) > 0) {
                 // MOM-compliant OT hourly base rate uses CONTRACTUAL weekly hours (from KET).
-                const hourlyRate = (12 * emp.basic_salary) / (52 * contractualWeeklyHours);
+                const hourlyRate = (12 * Number(emp.basic_salary)) / (52 * contractualWeeklyHours);
                 overtimeRate = hourlyRate * 1.5; // stored as the 1.5x base; engine divides to get 1.0x for 2.0x calc
             }
 
@@ -303,8 +303,8 @@ router.post('/run', authMiddleware, async (req, res) => {
                     payslip.other_allowance, payslip.custom_allowances, payslip.custom_deductions,
                     payslip.payment_mode, payslip.total_allowances, payslip.overtime_hours,
                     payslip.ot_1_5_hours, payslip.ot_2_0_hours, payslip.overtime_pay,
-                    payslip.ot_1_5_pay, payslip.ot_2_0_pay, payslip.ph_worked_extra_pay,
-                    payslip.ph_off_day_extra_pay, payslip.bonus, payslip.gross_pay,
+                    payslip.ot_1_5_pay, payslip.ot_2_0_pay, payslip.ph_worked_pay,
+                    payslip.ph_off_day_pay, payslip.bonus, payslip.gross_pay,
                     payslip.cpf_employee, payslip.cpf_employer, payslip.cpf_oa, payslip.cpf_sa,
                     payslip.cpf_ma, payslip.sdl, payslip.shg_deduction, payslip.shg_fund,
                     payslip.other_deductions, payslip.unpaid_leave_days, payslip.unpaid_leave_deduction,

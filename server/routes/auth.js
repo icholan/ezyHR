@@ -35,10 +35,10 @@ router.post('/signup', async (req, res) => {
 
         await client.query('BEGIN');
 
-        // 1. Create Tenant
+        // 1. Create Tenant (Defaults to 'pending' via DB, but we'll be explicit here too)
         const tenantRes = await client.query(
-            `INSERT INTO tenants (name, billing_email, subscription_plan) 
-             VALUES ($1, $2, 'starter') RETURNING id`,
+            `INSERT INTO tenants (name, billing_email, subscription_plan, status) 
+             VALUES ($1, $2, 'starter', 'pending') RETURNING id`,
             [companyName, billingEmail || username]
         );
         const tenantId = tenantRes.rows[0].id;
@@ -137,10 +137,13 @@ router.post('/login', async (req, res) => {
 
         // Check Tenant Status
         const tenantRes = await pool.query('SELECT status FROM tenants WHERE id = $1', [userData.tenant_id]);
-        const tenantStatus = tenantRes.rows[0]?.status || 'active';
+        const tenantStatus = tenantRes.rows[0]?.status || 'pending';
 
         if (tenantStatus !== 'active' && !userData.is_system_admin) {
-            return res.status(403).json({ error: `Your organization account is ${tenantStatus}. Please contact support.` });
+            const message = tenantStatus === 'pending'
+                ? "Your organization account is pending approval by the platform administrator. Please wait for approval before logging in."
+                : `Your organization account is ${tenantStatus}. Please contact support.`;
+            return res.status(403).json({ error: message });
         }
 
         // Fetch available entities for this user under their tenant

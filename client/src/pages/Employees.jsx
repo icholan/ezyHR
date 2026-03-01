@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
@@ -10,10 +11,11 @@ const Employees = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filters, setFilters] = useState({ department: '', group: '', nationality: '', status: '' });
+    const { activeEntity } = useAuth();
 
     useEffect(() => {
         loadEmployees();
-    }, []);
+    }, [activeEntity?.id]);
 
     const loadEmployees = async () => {
         try {

@@ -62,9 +62,9 @@ function processEmployeePayroll(employee, options = {}) {
     }
 
     // 0. MOM Proration Logic (for mid-month joinees or leavers)
-    let basicSalary = employee.basic_salary || 0;
-    let transportAllowance = employee.transport_allowance || 0;
-    let otherAllowance = employee.other_allowance || 0;
+    let basicSalary = Number(employee.basic_salary) || 0;
+    let transportAllowance = Number(employee.transport_allowance) || 0;
+    let otherAllowance = Number(employee.other_allowance) || 0;
 
     const periodStart = options.periodStart ? new Date(options.periodStart) : new Date(year, options.month - 1, 1);
     const periodEnd = options.periodEnd ? new Date(options.periodEnd) : new Date(year, options.month, 0);
@@ -90,7 +90,7 @@ function processEmployeePayroll(employee, options = {}) {
     }
 
     // 1. Calculate Gross Rate of Pay for deductions
-    const mealAllowance = employee.meal_allowance || 0;
+    const mealAllowance = Number(employee.meal_allowance) || 0;
 
     // Fixed Allowances included in Gross Rate of Pay
     const fixedAllowancesTotal = transportAllowance + mealAllowance + otherAllowance + customAllowancesTotal;
@@ -98,44 +98,43 @@ function processEmployeePayroll(employee, options = {}) {
 
     // MOM Official "Daily Rate of Pay" formula (MOM Second Schedule & Section 2)
     // Formula: (12 * Monthly Gross Rate) / (52 * Working Days Per Week)
-    const workingDaysPerWeek = employee.working_days_per_week || 5.5;
+    const workingDaysPerWeek = Number(employee.working_days_per_week) || 5.5;
     const dailyGrossRate = (grossRateOfMonth * 12) / (52 * workingDaysPerWeek);
 
     // Round daily rate to 2 decimals for constant deduction basis
     const roundedDailyRate = Math.round(dailyGrossRate * 100) / 100;
-    const unpaidLeaveDeduction = Math.round(roundedDailyRate * unpaidLeaveDays * 100) / 100;
+    const unpaidLeaveDeduction = Math.round(roundedDailyRate * Number(unpaidLeaveDays) * 100) / 100;
 
     // overtimeRate is already calculated logic as basic / ... * 1.5 by the route
     // So 1.5x pay = ot15Hours * overtimeRate
     // And 2.0x pay = ot20Hours * (overtimeRate * (2.0/1.5))
-    const ot15Pay = Math.round(ot15Hours * overtimeRate * 100) / 100;
-    const baseHourly = overtimeRate / 1.5;
-    const ot20Pay = Math.round(ot20Hours * (baseHourly * 2.0) * 100) / 100;
+    const ot15Pay = Math.round(Number(ot15Hours) * Number(overtimeRate) * 100) / 100;
+    const baseHourly = Number(overtimeRate) / 1.5;
+    const ot20Pay = Math.round(Number(ot20Hours) * (baseHourly * 2.0) * 100) / 100;
     // Backward compatibility for standard OT
-    const standardOtPay = Math.round(overtimeHours * overtimeRate * 100) / 100;
+    const standardOtPay = Math.round(Number(overtimeHours) * Number(overtimeRate) * 100) / 100;
 
     const overtimePay = ot15Pay + ot20Pay + standardOtPay;
 
     // 2. Public Holiday Entitlements (Section 42)
     // Extra pay for working on PH = 1 extra day of basic rate pay
-    const phExtraPay = Math.round(dailyGrossRate * phWorkedDays * 100) / 100; // Actually MOM says basic rate, but for monthly workers it's often gross. The user asked "how you'll calculate".
-    // Wait, Section 42(4) says 'extra day's salary at the basic rate of pay'.
-    const dailyBasicRate = totalWorkingDaysInMonth > 0 ? basicSalary / totalWorkingDaysInMonth : 0;
-    const phWorkedExtraPay = Math.round(dailyBasicRate * phWorkedDays * 100) / 100;
+    const phExtraPay = Math.round(dailyGrossRate * Number(phWorkedDays) * 100) / 100;
+    const dailyBasicRate = Number(totalWorkingDaysInMonth) > 0 ? basicSalary / Number(totalWorkingDaysInMonth) : 0;
+    const phWorkedExtraPay = Math.round(dailyBasicRate * Number(phWorkedDays) * 100) / 100;
 
     // PH on Off-Day (Section 42(3)): Day off in lieu or 1 extra day's salary at gross rate
-    const phOffDayExtraPay = Math.round(dailyGrossRate * phOffDaysPaid * 100) / 100;
+    const phOffDayExtraPay = Math.round(dailyGrossRate * Number(phOffDaysPaid) * 100) / 100;
 
     // 3. Attendance Penalty (Lateness/Early Out)
     // Formula: (Total Penalty Mins / 60) * (Basic Rate / 8) — uses daily basic / 8 hrs
     const hourlyBasicRate = dailyBasicRate / 8;
-    const attendanceDeduction = Math.round(((lateMins + earlyOutMins) / 60) * hourlyBasicRate * 100) / 100;
+    const attendanceDeduction = Math.round(((Number(lateMins) + Number(earlyOutMins)) / 60) * hourlyBasicRate * 100) / 100;
 
     // 4. Performance Reward
     // MOM: performance credit uses the same contractual hourly rate as OT.
     // Falls back to attendance-based hourly rate if MOM rate not provided.
-    const perfHourlyRate = momHourlyRate > 0 ? momHourlyRate : hourlyBasicRate;
-    const rawPerformanceAllowance = performanceCredits * perfHourlyRate * performanceMultiplier;
+    const perfHourlyRate = Number(momHourlyRate) > 0 ? Number(momHourlyRate) : hourlyBasicRate;
+    const rawPerformanceAllowance = Number(performanceCredits) * perfHourlyRate * Number(performanceMultiplier);
     // User Requirement: Round final performance credit amount to the nearest $5 or $10 value
     const performanceAllowance = Math.round(rawPerformanceAllowance / 5) * 5;
 
@@ -208,42 +207,43 @@ function processEmployeePayroll(employee, options = {}) {
         employee_id: employee.id,
         employee_name: employee.full_name,
         employee_code: employee.employee_id,
-        basic_salary: basicSalary,
-        transport_allowance: transportAllowance,
-        meal_allowance: mealAllowance,
-        other_allowance: otherAllowance,
+        basic_salary: Number(basicSalary),
+        transport_allowance: Number(transportAllowance),
+        meal_allowance: Number(mealAllowance),
+        other_allowance: Number(otherAllowance),
         custom_allowances: JSON.stringify(customAllowances),
         custom_deductions: JSON.stringify(customDeductions),
-        total_allowances: fixedAllowancesTotal,
-        overtime_hours: overtimeHours,
-        ot_1_5_hours: ot15Hours,
-        ot_2_0_hours: ot20Hours,
-        overtime_pay: overtimePay,
-        ot_1_5_pay: ot15Pay,
-        ot_2_0_pay: ot20Pay,
-        bonus,
-        unpaid_leave_days: unpaidLeaveDays,
-        unpaid_leave_deduction: unpaidLeaveDeduction,
-        gross_pay: Math.round(grossPay * 100) / 100,
-        cpf_employee: cpfResult.employeeContrib,
-        cpf_employer: cpfResult.employerContrib,
-        cpf_oa: cpfResult.oa,
-        cpf_sa: cpfResult.sa,
-        cpf_ma: cpfResult.ma,
-        sdl: sdlResult.sdl,
-        shg_deduction: shgResult.amount,
+        total_allowances: Number(fixedAllowancesTotal),
+        overtime_hours: Number(overtimeHours),
+        ot_1_5_hours: Number(ot15Hours),
+        ot_2_0_hours: Number(ot20Hours),
+        overtime_pay: Number(overtimePay),
+        ot_1_5_pay: Number(ot15Pay),
+        ot_2_0_pay: Number(ot20Pay),
+        bonus: Number(bonus),
+        unpaid_leave_days: Number(unpaidLeaveDays),
+        unpaid_leave_deduction: Number(unpaidLeaveDeduction),
+        gross_pay: Number(Math.round(grossPay * 100) / 100),
+        cpf_employee: Number(cpfResult.employeeContrib),
+        cpf_employer: Number(cpfResult.employerContrib),
+        cpf_oa: Number(cpfResult.oa),
+        cpf_sa: Number(cpfResult.sa),
+        cpf_ma: Number(cpfResult.ma),
+        sdl: Number(sdlResult.sdl),
+        shg_deduction: Number(shgResult.amount),
         shg_fund: shgResult.fund,
-        other_deductions: otherDeductions + customDeductionsTotal,
-        tax_monthly_estimate: taxResult.monthlyTax,
-        net_pay: netPay,
-        ph_worked_extra_pay: phWorkedExtraPay,
-        ph_off_day_extra_pay: phOffDayExtraPay,
-        late_mins: lateMins,
-        early_out_mins: earlyOutMins,
-        attendance_deduction: attendanceDeduction,
-        performance_allowance: performanceAllowance,
-        ns_makeup_pay: nsMakeupPay,
-        ns_days: nsDays,
+        other_deductions: Number(otherDeductions) + Number(customDeductionsTotal),
+        tax_monthly_estimate: Number(taxResult.monthlyTax),
+        net_pay: Number(netPay),
+        ph_worked_pay: Number(phWorkedExtraPay),
+        ph_off_day_pay: Number(phOffDayExtraPay),
+        ph_worked_extra_pay: Number(phWorkedExtraPay), // Keep for internal compat if needed
+        late_mins: Number(lateMins),
+        early_out_mins: Number(earlyOutMins),
+        attendance_deduction: Number(attendanceDeduction),
+        performance_allowance: Number(performanceAllowance),
+        ns_makeup_pay: Number(nsMakeupPay),
+        ns_days: Number(nsDays),
         payment_mode: employee.payment_mode || 'Bank Transfer',
         compliance_notes: capWarning ? 'MOM 50% Deduction Cap Applied' : ''
     };

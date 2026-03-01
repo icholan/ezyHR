@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import toast from 'react-hot-toast'
 import api from '../services/api'
+import Swal from 'sweetalert2'
 
 export default function Signup() {
     const [form, setForm] = useState({
@@ -30,9 +31,31 @@ export default function Signup() {
 
             if (!response.ok) throw new Error(data.error || 'Signup failed');
 
-            login(data.token, data.user);
-            toast.success('Enterprise account created successfully!');
-            navigate('/dashboard');
+            Swal.fire({
+                title: 'Congratulations! 🎉',
+                html: `
+                    <div class="space-y-4">
+                        <p class="text-lg font-medium">Your workspace has been created successfully.</p>
+                        <div class="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                            <p class="text-amber-500 font-bold">Your account is waiting for Approval</p>
+                            <p class="text-sm text-[var(--text-muted)] mt-1">Our team will review your application shortly.</p>
+                        </div>
+                        <p class="text-sm">If you have any questions, please contact:<br/>
+                        <a href="mailto:admin@ezy.sg" class="text-[var(--brand-primary)] font-bold">admin@ezy.sg</a></p>
+                    </div>
+                `,
+                icon: 'success',
+                confirmButtonText: 'Great, take me back',
+                background: 'var(--bg-card)',
+                color: 'var(--text-main)',
+                customClass: {
+                    popup: 'glass-card border border-[var(--border-main)] rounded-2xl p-6',
+                    confirmButton: 'btn-primary py-2 px-8 rounded-xl'
+                },
+                buttonsStyling: false
+            }).then(() => {
+                navigate('/');
+            });
         } catch (err) {
             toast.error(err.message);
         } finally {

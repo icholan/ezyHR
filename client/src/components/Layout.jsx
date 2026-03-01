@@ -225,7 +225,7 @@ export default function Layout() {
                                     className="w-full bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] text-xs rounded-xl focus:ring-1 focus:ring-[var(--brand-primary)] outline-none focus:border-[var(--brand-primary)] p-2.5 appearance-none cursor-pointer font-medium"
                                     value={activeEntity?.id || ''}
                                     onChange={(e) => {
-                                        const selected = entities.find(ent => ent.id === e.target.value);
+                                        const selected = entities.find(ent => String(ent.id) === String(e.target.value));
                                         if (selected) switchEntity(selected);
                                     }}
                                 >

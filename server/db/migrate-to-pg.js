@@ -6,13 +6,13 @@ const path = require('path');
 
 // Ensure PostgreSQL connection string is provided
 if (!process.env.DATABASE_URL) {
-    console.error("❌ ERROR: DATABASE_URL environment variable is not defined.");
-    console.error("Please add it to your .env file or run with DATABASE_URL=postgres://user:pass@host/db node migrate-to-pg.js");
-    process.exit(1);
+  console.error("❌ ERROR: DATABASE_URL environment variable is not defined.");
+  console.error("Please add it to your .env file or run with DATABASE_URL=postgres://user:pass@host/db node migrate-to-pg.js");
+  process.exit(1);
 }
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL,
 });
 
 const schema = `
@@ -415,7 +415,7 @@ const schema = `
       taxable_profit NUMERIC
     );
 
-    CREATE TABLE IF NOT EXISTS shift_settings_v2 (
+    CREATE TABLE IF NOT EXISTS shift_settings (
       id SERIAL PRIMARY KEY,
       entity_id INTEGER NOT NULL REFERENCES entities(id),
       shift_name VARCHAR(255) NOT NULL,
@@ -436,88 +436,88 @@ const schema = `
 `;
 
 const tablesToMigrate = [
-    'entities', 'users', 'user_entity_roles', 'departments', 'employee_groups',
-    'employee_grades', 'email_domains', 'holidays', 'employees',
-    'employee_documents', 'employee_kets', 'leave_types', 'leave_policies',
-    'leave_balances', 'leave_requests', 'payroll_runs', 'payslips', 'user_roles',
-    'shift_settings_v2', 'timesheets', 'attendance_remarks', 'submission_logs',
-    'iras_forms', 'iras_benefits_in_kind', 'iras_submissions', 'ns_claims',
-    'iras_share_options'
+  'entities', 'users', 'user_entity_roles', 'departments', 'employee_groups',
+  'employee_grades', 'email_domains', 'holidays', 'employees',
+  'employee_documents', 'employee_kets', 'leave_types', 'leave_policies',
+  'leave_balances', 'leave_requests', 'payroll_runs', 'payslips', 'user_roles',
+  'shift_settings', 'timesheets', 'attendance_remarks', 'submission_logs',
+  'iras_forms', 'iras_benefits_in_kind', 'iras_submissions', 'ns_claims',
+  'iras_share_options'
 ];
 
 async function migrateData() {
-    console.log("🚀 Starting PostgreSQL schema creation...");
-    await pool.query(schema);
-    console.log("✅ Schema created successfully.");
+  console.log("🚀 Starting PostgreSQL schema creation...");
+  await pool.query(schema);
+  console.log("✅ Schema created successfully.");
 
-    console.log("📦 Loading data from local SQLite database...");
-    const sqliteDb = await getDb();
+  console.log("📦 Loading data from local SQLite database...");
+  const sqliteDb = await getDb();
 
-    for (const table of tablesToMigrate) {
-        console.log(`\n➡️ Migrating table: ${table}...`);
+  for (const table of tablesToMigrate) {
+    console.log(`\n➡️ Migrating table: ${table}...`);
 
-        try {
-            const result = sqliteDb.exec(`SELECT * FROM ${table}`);
-            if (result.length === 0) {
-                console.log(`   Table ${table} is empty. Skipping.`);
-                continue;
+    try {
+      const result = sqliteDb.exec(`SELECT * FROM ${table}`);
+      if (result.length === 0) {
+        console.log(`   Table ${table} is empty. Skipping.`);
+        continue;
+      }
+
+      const columns = result[0].columns;
+      const rows = result[0].values;
+
+      // Build PostgreSQL insert statement dynamically
+      // e.g. INSERT INTO entities (id, name, ...) VALUES ($1, $2, ...)
+      const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+      const insertQuery = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
+
+      let rowCount = 0;
+      // Begin a single transaction for the table for speed
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        for (const row of rows) {
+
+          // Specific Boolean casting logic from SQLite (0/1) to PostgreSQL (false/true)
+          const transformedRow = row.map((val, idx) => {
+            const colName = columns[idx];
+            // SQLite returns true/false columns as 1 or 0 integers occasionally, or boolean true/false.
+            // Ensure it's correctly typed for PG if the column expects boolean.
+            if (['cpf_applicable', 'cpf_full_rate_agreed', 'cpf_payable', 'encashment_allowed', 'is_locked'].includes(colName)) {
+              return val === 1 || val === true || val === '1' || val === 'true';
             }
+            return val;
+          });
 
-            const columns = result[0].columns;
-            const rows = result[0].values;
-
-            // Build PostgreSQL insert statement dynamically
-            // e.g. INSERT INTO entities (id, name, ...) VALUES ($1, $2, ...)
-            const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
-            const insertQuery = `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`;
-
-            let rowCount = 0;
-            // Begin a single transaction for the table for speed
-            const client = await pool.connect();
-            try {
-                await client.query('BEGIN');
-                for (const row of rows) {
-
-                    // Specific Boolean casting logic from SQLite (0/1) to PostgreSQL (false/true)
-                    const transformedRow = row.map((val, idx) => {
-                        const colName = columns[idx];
-                        // SQLite returns true/false columns as 1 or 0 integers occasionally, or boolean true/false.
-                        // Ensure it's correctly typed for PG if the column expects boolean.
-                        if (['cpf_applicable', 'cpf_full_rate_agreed', 'cpf_payable', 'encashment_allowed', 'is_locked'].includes(colName)) {
-                            return val === 1 || val === true || val === '1' || val === 'true';
-                        }
-                        return val;
-                    });
-
-                    await client.query(insertQuery, transformedRow);
-                    rowCount++;
-                }
-
-                // If the table uses an auto-incrementing id (SERIAL), we must reset the sequence 
-                // heavily so that new inserts don't conflict with explicitly inserted IDs from SQLite
-                if (columns.includes('id')) {
-                    await client.query(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE(MAX(id), 1) + 1, false) FROM ${table};`);
-                }
-
-                await client.query('COMMIT');
-                console.log(`   ✅ Migrated ${rowCount} rows for ${table}.`);
-            } catch (e) {
-                await client.query('ROLLBACK');
-                console.error(`   ❌ Failed to migrate ${table}: ${e.message}`);
-            } finally {
-                client.release();
-            }
-
-        } catch (err) {
-            console.error(`   ⚠️ Could not read ${table} from SQLite: ${err.message}`);
+          await client.query(insertQuery, transformedRow);
+          rowCount++;
         }
-    }
 
-    console.log("\n🎉 Migration completed successfully.");
-    process.exit(0);
+        // If the table uses an auto-incrementing id (SERIAL), we must reset the sequence 
+        // heavily so that new inserts don't conflict with explicitly inserted IDs from SQLite
+        if (columns.includes('id')) {
+          await client.query(`SELECT setval(pg_get_serial_sequence('${table}', 'id'), COALESCE(MAX(id), 1) + 1, false) FROM ${table};`);
+        }
+
+        await client.query('COMMIT');
+        console.log(`   ✅ Migrated ${rowCount} rows for ${table}.`);
+      } catch (e) {
+        await client.query('ROLLBACK');
+        console.error(`   ❌ Failed to migrate ${table}: ${e.message}`);
+      } finally {
+        client.release();
+      }
+
+    } catch (err) {
+      console.error(`   ⚠️ Could not read ${table} from SQLite: ${err.message}`);
+    }
+  }
+
+  console.log("\n🎉 Migration completed successfully.");
+  process.exit(0);
 }
 
 migrateData().catch(err => {
-    console.error("Migration failed conceptually:", err);
-    process.exit(1);
+  console.error("Migration failed conceptually:", err);
+  process.exit(1);
 });

@@ -28,7 +28,7 @@ export default function EmployeeGroups() {
 
     useEffect(() => {
         loadData()
-    }, [activeEntity])
+    }, [activeEntity?.id])
 
     const handleEdit = (item) => {
         setEditing(item)

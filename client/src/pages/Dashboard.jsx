@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '../context/AuthContext'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js'
 import { Bar, Doughnut } from 'react-chartjs-2'
 import api from '../services/api'
@@ -33,6 +34,7 @@ export default function Dashboard() {
     const [expiringDocs, setExpiringDocs] = useState([])
     const [loading, setLoading] = useState(true)
     const { theme } = useTheme()
+    const { activeEntity } = useAuth()
 
     useEffect(() => {
         Promise.all([
@@ -45,7 +47,7 @@ export default function Dashboard() {
             })
             .catch(console.error)
             .finally(() => setLoading(false))
-    }, [])
+    }, [activeEntity?.id])
 
     if (loading) return <div className="space-y-6">{[1, 2, 3].map(i => <div key={i} className="card-base h-32 loading-shimmer" />)}</div>
 

@@ -28,7 +28,7 @@ export default function Departments() {
 
     useEffect(() => {
         loadData()
-    }, [activeEntity])
+    }, [activeEntity?.id])
 
     const handleEdit = (item) => {
         setEditing(item)

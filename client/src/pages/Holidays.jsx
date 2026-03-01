@@ -13,11 +13,12 @@ export default function Holidays() {
     const [itemToDelete, setItemToDelete] = useState(null)
     const [editing, setEditing] = useState(null)
     const [form, setForm] = useState({ name: '', date: '' })
+    const [year, setYear] = useState(new Date().getFullYear()) // Added year state
 
     const loadData = async () => {
         setLoading(true)
         try {
-            const data = await api.getHolidays()
+            const data = await api.getHolidays(activeEntity?.id, year) // Pass activeEntity.id and year
             setHolidays(data)
         } catch (err) {
             toast.error(err.message)
@@ -28,7 +29,7 @@ export default function Holidays() {
 
     useEffect(() => {
         loadData()
-    }, [activeEntity])
+    }, [activeEntity?.id, year]) // Modified dependency array
 
     const handleEdit = (item) => {
         setEditing(item)

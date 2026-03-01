@@ -418,13 +418,13 @@ export default function Payroll() {
                                             </span>
                                         </td>
                                         <td className="!px-1 text-center">
-                                            <span className={(ps.ph_worked_pay + ps.ph_off_day_pay) > 0 ? "text-amber-500 font-medium" : "text-[var(--text-muted)]"}>
-                                                {formatCurrency(ps.ph_worked_pay + ps.ph_off_day_pay)}
+                                            <span className={(Number(ps.ph_worked_pay) + Number(ps.ph_off_day_pay)) > 0 ? "text-amber-500 font-medium" : "text-[var(--text-muted)]"}>
+                                                {formatCurrency(Number(ps.ph_worked_pay) + Number(ps.ph_off_day_pay))}
                                             </span>
                                         </td>
                                         <td className="!px-1 text-center">
-                                            <span className={(ps.ot_1_5_pay + ps.ot_2_0_pay + ps.ph_worked_pay + ps.ph_off_day_pay) > 0 ? "text-cyan-400 font-bold" : "text-[var(--text-muted)]"}>
-                                                {formatCurrency(ps.ot_1_5_pay + ps.ot_2_0_pay + ps.ph_worked_pay + ps.ph_off_day_pay)}
+                                            <span className={(Number(ps.ot_1_5_pay) + Number(ps.ot_2_0_pay) + Number(ps.ph_worked_pay) + Number(ps.ph_off_day_pay)) > 0 ? "text-cyan-400 font-bold" : "text-[var(--text-muted)]"}>
+                                                {formatCurrency(Number(ps.ot_1_5_pay) + Number(ps.ot_2_0_pay) + Number(ps.ph_worked_pay) + Number(ps.ph_off_day_pay))}
                                             </span>
                                         </td>
                                         <td className="!px-1 text-center">

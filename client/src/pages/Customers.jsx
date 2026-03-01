@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import Swal from 'sweetalert2';
 function Customers() {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [search, setSearch] = useState('');
+    const { activeEntity } = useAuth();
     const [formVisible, setFormVisible] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState(null);
 
@@ -16,7 +19,7 @@ function Customers() {
 
     useEffect(() => {
         fetchCustomers();
-    }, []);
+    }, [activeEntity?.id]);
 
     const fetchCustomers = async () => {
         try {
