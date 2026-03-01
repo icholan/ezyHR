@@ -18,10 +18,25 @@ export function AuthProvider({ children }) {
 
         if (savedToken && savedUser) {
             setToken(savedToken);
-            setUser(JSON.parse(savedUser));
+            const userObj = JSON.parse(savedUser);
+            setUser(userObj);
+
             if (savedEntity) {
                 setActiveEntity(JSON.parse(savedEntity));
             }
+
+            // Fallback: Fetch latest profile to ensure tenantName is up to date
+            fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${savedToken}` }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.id) {
+                        setUser(data);
+                        localStorage.setItem('hrms_user', JSON.stringify(data));
+                    }
+                })
+                .catch(err => console.error('Failed to sync profile', err));
         }
         setLoading(false);
     }, []);

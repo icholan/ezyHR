@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
+const auditLogger = require('../utils/auditLogger');
 const multer = require('multer');
 const XLSX = require('xlsx');
 
@@ -170,8 +171,8 @@ router.get('/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// POST /api/employees
 router.post('/', authMiddleware, photoUpload.single('photo'), async (req, res) => {
+    console.log('[DEBUG] POST /api/employees hit');
     try {
         const db = await getDb();
         const entityId = req.user.entityId;
@@ -230,6 +231,16 @@ router.post('/', authMiddleware, photoUpload.single('photo'), async (req, res) =
                 [created.id, lt.id, year, lt.default_days, lt.default_days]);
         }
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'CREATE_EMPLOYEE',
+            entityType: 'employees',
+            entityId: created.id,
+            newValues: created,
+            req
+        });
+
         res.status(201).json({ ...created, warning });
     } catch (err) {
         console.error('[POST_EMPLOYEE_ERROR]', err);
@@ -237,30 +248,53 @@ router.post('/', authMiddleware, photoUpload.single('photo'), async (req, res) =
     }
 });
 
-// PUT /api/employees/:id
 router.put('/:id', authMiddleware, photoUpload.single('photo'), async (req, res) => {
+    console.log(`[DEBUG] PUT /api/employees/${req.params.id} hit`);
     try {
         const db = await getDb();
         const entityId = req.user.entityId;
         const e = req.body;
         const photoUrl = req.file ? `/uploads/photos/${req.file.filename}` : (e.photo_url || null);
 
+        // Capture OLD values before update
+        const oldResult = await db.exec('SELECT * FROM employees WHERE id = ?', [req.params.id]);
+        const oldValues = toObjects(oldResult)[0];
+
         await db.run(
             `UPDATE employees SET employee_id=?, full_name=?, date_of_birth=?, national_id=?, nationality=?, tax_residency=?, race=?, gender=?, language=?, mobile_number=?, whatsapp_number=?, email=?, highest_education=?, designation=?, department=?, employee_group=?, employee_grade=?, date_joined=?, cessation_date=?, basic_salary=?, transport_allowance=?, meal_allowance=?, other_allowance=?, other_deduction=?, bank_name=?, bank_account=?, cpf_applicable=?, pr_status_start_date=?, cpf_full_rate_agreed=?, status=?, payment_mode=?, custom_allowances=?, custom_deductions=?, site_id=?, working_days_per_week=?, rest_day=?, working_hours_per_day=?, working_hours_per_week=?, photo_url=?, work_pass_type=?, work_pass_expiry=?, work_pass_no=?, work_pass_start_date=? WHERE id=? AND entity_id=?`,
             [e.employee_id || '', e.full_name || '', e.date_of_birth || null, e.national_id || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', e.designation || '', e.department || '', e.employee_group || 'General', e.employee_grade || '', e.date_joined || null, e.cessation_date || null, e.basic_salary || 0, e.transport_allowance || 0, e.meal_allowance || 0, e.other_allowance || 0, e.other_deduction || 0, e.bank_name || '', e.bank_account || '', e.cpf_applicable !== undefined ? e.cpf_applicable : 1, e.pr_status_start_date || null, e.cpf_full_rate_agreed !== undefined ? e.cpf_full_rate_agreed : 0, e.status || 'Active', e.payment_mode || 'Bank Transfer', e.custom_allowances || '{}', e.custom_deductions || '{}', e.site_id || null, e.working_days_per_week || 5.5, e.rest_day || 'Sunday', e.working_hours_per_day || 8, e.working_hours_per_week || 44, photoUrl || null, e.work_pass_type || null, e.work_pass_expiry || null, e.work_pass_no || null, e.work_pass_start_date || null, req.params.id || null, entityId || null]
         );
 
-        // SYNC: Update personal details across all other entities for same national_id
+        // SYNC: Update personal details across all other entities for same national_id (STRICTLY within same tenant)
         if (e.national_id) {
             await db.run(
-                `UPDATE employees SET full_name=?, date_of_birth=?, nationality=?, tax_residency=?, race=?, gender=?, language=?, mobile_number=?, whatsapp_number=?, email=?, highest_education=?, photo_url=? WHERE national_id = ? AND entity_id != ?`,
-                [e.full_name || '', e.date_of_birth || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', photoUrl || null, e.national_id, entityId]
+                `UPDATE employees 
+                 SET full_name=?, date_of_birth=?, nationality=?, tax_residency=?, race=?, gender=?, language=?, mobile_number=?, whatsapp_number=?, email=?, highest_education=?, photo_url=? 
+                 WHERE national_id = ? 
+                 AND entity_id != ? 
+                 AND entity_id IN (SELECT id FROM entities WHERE tenant_id = ?)`,
+                [e.full_name || '', e.date_of_birth || null, e.nationality || 'Singapore Citizen', e.tax_residency || 'Resident', e.race || 'Chinese', e.gender || '', e.language || '', e.mobile_number || '', e.whatsapp_number || '', e.email || '', e.highest_education || 'Others', photoUrl || null, e.national_id, entityId, req.user.tenantId]
             );
         }
 
         saveDb();
-        const result = await db.exec('SELECT * FROM employees WHERE id = ?', [req.params.id]);
-        res.json(toObjects(result)[0]);
+        console.log(`[DEBUG] Fetching updated employee ${req.params.id}`);
+        const editResult = await db.exec('SELECT * FROM employees WHERE id = ?', [req.params.id]);
+        console.log(`[DEBUG] Fetch result columns: ${editResult?.[0]?.columns?.join(',')}`);
+        const updated = toObjects(editResult)[0];
+
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'UPDATE_EMPLOYEE',
+            entityType: 'employees',
+            entityId: req.params.id,
+            oldValues: oldValues,
+            newValues: updated,
+            req
+        });
+
+        res.json(updated);
     } catch (err) {
         console.error('[PUT_EMPLOYEE_ERROR]', err);
         res.status(500).json({ error: err.message });
@@ -276,6 +310,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         await db.run('DELETE FROM leave_requests WHERE employee_id = ?', [req.params.id]);
         await db.run('DELETE FROM employees WHERE id = ?', [req.params.id]);
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'DELETE_EMPLOYEE',
+            entityType: 'employees',
+            entityId: req.params.id,
+            req
+        });
+
         res.json({ message: 'Employee deleted' });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });

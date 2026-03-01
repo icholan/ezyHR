@@ -1,6 +1,6 @@
-[dotenv@17.3.1] injecting env (2) from .env -- tip: ⚡️ secrets for agents: https://dotenvx.com/as2
+[dotenv@17.3.1] injecting env (2) from .env -- tip: ⚙️  override existing env vars with { override: true }
 🚀 SERVER RESTARTING - TRANSLATE ROUTE ACTIVE
-[DB] Connected to PostgreSQL at Sat Feb 28 2026 23:59:01 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:08:19 GMT+0800 (Singapore Standard Time)
 📦 Database initialized
 🚀 HRMS Server running on http://localhost:5005
 📋 API Routes:
@@ -10,3 +10,360 @@
    GET  /api/leave/types
    POST /api/payroll/run
    GET  /api/reports/dashboard
+[2026-03-01T00:09:22.040Z] GET /api/documents/expiring
+[2026-03-01T00:09:22.049Z] GET /api/reports/dashboard
+[2026-03-01T00:09:22.051Z] GET /api/entities
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Saved to /Users/cholan/MyProjects/ReactJS/mathi/ezyht-db-migration/hrms-singapore/server/db/hrms-db.sqlite (1167360 bytes)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:22.748Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:22.773Z] GET /api/documents/expiring
+[2026-03-01T00:09:22.779Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:22.802Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:22.829Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:22.884Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:25.313Z] GET /api/entities
+[2026-03-01T00:09:25.315Z] GET /api/employees?entityId=2
+[2026-03-01T00:09:25.316Z] GET /api/holidays?year=2026&month=3&entityId=2
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:25.338Z] GET /api/holidays?year=2026&month=3&entityId=2
+[2026-03-01T00:09:25.339Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:25.368Z] GET /api/employees?entityId=2
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:25 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:35.566Z] GET /api/holidays?year=2026&month=3&entityId=2
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:35 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:09:35.599Z] GET /api/attendance/monthly?employeeId=34&year=2026&month=3&entityId=2
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:09:35 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:11:08.674Z] GET /api/employees
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:11:08 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:11:12.771Z] GET /api/reports/detailed-attendance/2026/3/34
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:11:12 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:29:24.097Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:29:24 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:29:24.195Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:29:24 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.082Z] POST /api/auth/login
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.505Z] GET /api/reports/dashboard
+[2026-03-01T00:53:06.505Z] GET /api/documents/expiring
+[2026-03-01T00:53:06.505Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.536Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.761Z] GET /api/documents/expiring
+[2026-03-01T00:53:06.766Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.784Z] GET /api/reports/dashboard
+[2026-03-01T00:53:06.786Z] GET /api/documents/expiring
+[2026-03-01T00:53:06.793Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.816Z] GET /api/documents/expiring
+[2026-03-01T00:53:06.817Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.842Z] GET /api/documents/expiring
+[2026-03-01T00:53:06.843Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.865Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.892Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.904Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.914Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:06.955Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:07.005Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:07 GMT+0800 (Singapore Standard Time)
+[2026-03-01T00:53:07.063Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 08:53:07 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:23.662Z] GET /api/employees
+[2026-03-01T01:21:23.677Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:23 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:23 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:23.984Z] GET /api/employees
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:24 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:24.031Z] GET /api/employees
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:24 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:24.084Z] GET /api/employees
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:24 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:24.172Z] GET /uploads/photos/emp_1772025456686.jpeg
+[2026-03-01T01:21:24.174Z] GET /uploads/photos/emp_1772177827644.jpeg
+[2026-03-01T01:21:24.174Z] GET /uploads/photos/emp_1772023319379.jpeg
+[2026-03-01T01:21:30.069Z] GET /api/documents/expiring
+[2026-03-01T01:21:30.070Z] GET /api/reports/dashboard
+[2026-03-01T01:21:30.070Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:30.094Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:30.128Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:30.327Z] GET /api/reports/dashboard
+[2026-03-01T01:21:30.329Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:30.367Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:21:30.399Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:21:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.028Z] POST /api/auth/login
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.256Z] GET /api/reports/dashboard
+[2026-03-01T01:28:05.258Z] GET /api/entities
+[2026-03-01T01:28:05.259Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.270Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.332Z] GET /api/entities
+[2026-03-01T01:28:05.332Z] GET /api/documents/expiring
+[2026-03-01T01:28:05.335Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.357Z] GET /api/entities
+[2026-03-01T01:28:05.362Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.377Z] GET /api/entities
+[2026-03-01T01:28:05.382Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.401Z] GET /api/reports/dashboard
+[2026-03-01T01:28:05.410Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.435Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.463Z] GET /api/documents/expiring
+[2026-03-01T01:28:05.463Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.484Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.511Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.564Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:05.614Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:05 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:09.956Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:09 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:28:09.984Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:28:10 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:31:40.295Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:31:40 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:36:21.253Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:36:21 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:38:17.972Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:38:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:38:18.234Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:38:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:38:25.988Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:38:26 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:38:26.015Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:38:26 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:43:48.627Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:43:48 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:06.690Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:06.730Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:08.396Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:08 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:08.425Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:08 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:12.016Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:12 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:12.041Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:12 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:13.292Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:13 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:13.316Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:13 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:16.240Z] PUT /api/entities/7
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:16.276Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:16.329Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:16.357Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:18.320Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:18.346Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:20.560Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:20 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:20.590Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:20 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:22.402Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:22.430Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:22 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:41.190Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:41 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:41.216Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:41 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:43.422Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:43 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:43.450Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:43 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:52.042Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:52 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:52.065Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:52 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:54.347Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:44:54.371Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:44:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:03.737Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:03 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:03.760Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:03 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:06.134Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:06.166Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:06 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:18.729Z] PUT /api/entities/7
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:18.757Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:18.805Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:18.831Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:18 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:23.110Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:23 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:23.137Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:23 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:38.187Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:38 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:45:38.217Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:45:38 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:53.695Z] GET /api/sites
+[2026-03-01T01:48:53.696Z] GET /api/customers
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:53 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:53 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:53.797Z] GET /api/customers
+[2026-03-01T01:48:53.797Z] GET /api/sites
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:53 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:53 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:54.423Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:54.453Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:59.405Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:59 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:48:59.428Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:48:59 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:02.577Z] PUT /api/entities/7
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:02 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:02.609Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:02 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:02.650Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:02 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:02.674Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:02 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:07.311Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:07 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:07.339Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:07 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:16.186Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:49:16.221Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:49:16 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:55:30.520Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:55:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:55:30.773Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:55:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:55:30.823Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:55:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T01:55:30.867Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 09:55:30 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:03:46.550Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:05:42.008Z] GET /api/health
+[2026-03-01T02:05:48.506Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:07:02.008Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:07:53.078Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:09:54.002Z] POST /api/auth/login
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:09:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:12:04.923Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:13:00.038Z] POST /api/auth/signup
+[404_JSON] POST /auth/signup
+[2026-03-01T02:14:54.119Z] POST /api/auth/login
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.319Z] GET /api/documents/expiring
+[2026-03-01T02:14:54.320Z] GET /api/reports/dashboard
+[2026-03-01T02:14:54.322Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.343Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.382Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.405Z] GET /api/entities
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.425Z] GET /api/documents/expiring
+[2026-03-01T02:14:54.425Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.455Z] GET /api/entities
+[2026-03-01T02:14:54.455Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.484Z] GET /api/entities
+[2026-03-01T02:14:54.486Z] GET /api/documents/expiring
+[2026-03-01T02:14:54.487Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.515Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.535Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.548Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.560Z] GET /api/documents/expiring
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.598Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.650Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)
+[2026-03-01T02:14:54.700Z] GET /api/reports/dashboard
+[DB] Connected to PostgreSQL at Sun Mar 01 2026 10:14:54 GMT+0800 (Singapore Standard Time)

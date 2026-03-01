@@ -39,6 +39,7 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Routes
 app.use('/api/auth', authRoutes);
+console.log('📋 Auth Routes Keys:', Object.keys(authRoutes));
 app.use('/api/employees', employeeRoutes);
 app.use('/api/translate', translateRoutes);
 app.use('/api/kets', ketsRoutes);
@@ -61,7 +62,9 @@ app.use('/api/timesheets', require('./routes/timesheets'));
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/transmit', transmitRoutes);
 app.use('/api/iras', require('./routes/iras'));
+app.use('/api/audit-logs', require('./routes/audit'));
 app.use('/api/gov', require('./routes/gov'));
+app.use('/api/admin', require('./routes/admin'));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -69,18 +72,18 @@ app.get('/api/health', (req, res) => {
         reloadDb();
         return res.json({ status: 'ok', message: 'Database reloaded from disk' });
     }
-    res.json({ status: 'ok', name: 'HRMS Singapore API', version: '1.0.0' });
-});
-
-// React Catch-all route for single-page application routing
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    res.json({ status: 'ok', name: 'HRMS Singapore API', version: '1.0.1-SIGNUP-DEBUG' });
 });
 
 // JSON 404 for any other /api routes
 app.use('/api', (req, res) => {
     console.log(`[404_JSON] ${req.method} ${req.url}`);
     res.status(404).json({ error: `Route ${req.method} ${req.url} not found` });
+});
+
+// React Catch-all route for single-page application routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
 // Initialize DB and start server

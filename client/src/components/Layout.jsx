@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext'
 import Swal from 'sweetalert2'
 
 const navItems = [
-    { to: '/', icon: '📊', label: 'Dashboard' },
+    { to: '/dashboard', icon: '📊', label: 'Dashboard' },
     { to: '/employees', icon: '👥', label: 'Employee' },
     { to: '/leave', icon: '🌴', label: 'Leaves' },
     { to: '/attendance', icon: '📅', label: 'Attendance' },
@@ -27,6 +27,7 @@ const masterItems = [
     { to: '/leave-policies', icon: '📜', label: 'Leave Policies', adminOnly: true },
     { to: '/users', icon: '👤', label: 'Users', adminOnly: true },
     { to: '/user-roles', icon: '🔑', label: 'Roles', adminOnly: true },
+    { to: '/audit-logs', icon: '📜', label: 'Audit Logs', adminOnly: true },
 ]
 
 export default function Layout() {
@@ -108,11 +109,18 @@ export default function Layout() {
                 ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
             `}>
                 {/* Logo Area */}
-                <div className="h-32 flex flex-col items-center justify-center px-4 border-b border-[var(--border-main)] md:border-none md:mt-4">
+                <div className="min-h-[140px] h-auto flex flex-col items-center justify-center px-4 py-4 border-b border-[var(--border-main)] md:border-none md:mt-4">
                     <img src="/ezyhr-logo.png" alt="ezyHR Logo" className="h-24 object-contain" onError={(e) => { e.target.onerror = null; e.target.src = "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👥</text></svg>" }} />
                     <span className="text-[10px] font-black tracking-wider uppercase bg-gradient-to-r from-cyan-400 via-emerald-400 to-blue-500 bg-clip-text text-transparent text-center px-2">
                         MOM · CPF · IRAS · Compliant HRMS
                     </span>
+                    {user?.tenantName && (
+                        <div className="mt-2 text-center">
+                            <span className="px-3 py-1 text-[10px] font-bold text-[var(--brand-primary)] bg-[var(--brand-primary)]/5 rounded-full border border-[var(--brand-primary)]/10">
+                                🏢 {user.tenantName}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Main Menu nav */}
@@ -125,7 +133,7 @@ export default function Layout() {
                             <NavLink
                                 key={item.to}
                                 to={item.to}
-                                end={item.to === '/'}
+                                end={item.to === '/dashboard'}
                                 onClick={closeMobileMenu}
                                 className={({ isActive }) =>
                                     `flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isActive
@@ -139,6 +147,28 @@ export default function Layout() {
                             </NavLink>
                         ))}
                     </div>
+
+                    {/* Platform Admin Role - GLOBAL CONTROL */}
+                    {user?.isSystemAdmin && (
+                        <div className="pt-4 mb-2">
+                            <div className="px-5 py-2 text-xs font-semibold text-rose-500 uppercase tracking-widest bg-rose-500/5 rounded-lg border border-rose-500/10 mb-2">
+                                Platform Owner
+                            </div>
+                            <NavLink
+                                to="/platform-admin"
+                                onClick={closeMobileMenu}
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-bold transition-all duration-200 ${isActive
+                                        ? 'bg-rose-500 text-white shadow-lg'
+                                        : 'text-rose-400 hover:text-rose-500 hover:bg-rose-500/10'
+                                    }`
+                                }
+                            >
+                                <span className="text-lg w-6 text-center">🛡️</span>
+                                <span>Platform Console</span>
+                            </NavLink>
+                        </div>
+                    )}
 
                     {/* Master Data Group */}
                     {['Admin', 'HR', 'Operations Admin'].includes(role) && (
@@ -195,12 +225,12 @@ export default function Layout() {
                                     className="w-full bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] text-xs rounded-xl focus:ring-1 focus:ring-[var(--brand-primary)] outline-none focus:border-[var(--brand-primary)] p-2.5 appearance-none cursor-pointer font-medium"
                                     value={activeEntity?.id || ''}
                                     onChange={(e) => {
-                                        const selected = entities.find(ent => ent.id === parseInt(e.target.value));
+                                        const selected = entities.find(ent => ent.id === e.target.value);
                                         if (selected) switchEntity(selected);
                                     }}
                                 >
-                                    {entities.map(ent => (
-                                        <option key={ent.id} value={ent.id}>{ent.name}</option>
+                                    {entities?.filter(ent => ent.is_active || ent.id === activeEntity?.id).map(ent => (
+                                        <option key={ent.id} value={ent.id}>{ent.name} {!ent.is_active && '(Inactive)'}</option>
                                     ))}
                                 </select>
                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-muted)] text-[8px]">▼</div>

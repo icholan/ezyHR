@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import toast from 'react-hot-toast'
+import Swal from 'sweetalert2'
 import api from '../services/api'
 
 export default function Login() {
@@ -17,10 +17,34 @@ export default function Login() {
         try {
             const data = await api.login(username, password)
             login(data.token, data.user)
-            toast.success('Welcome back!')
-            navigate('/')
+
+            // Premium Success Alert
+            Swal.fire({
+                icon: 'success',
+                title: 'Welcome Back!',
+                text: `Successfully logged in as ${data.user.fullName}`,
+                timer: 1500,
+                showConfirmButton: false,
+                background: 'var(--bg-main)',
+                color: 'var(--text-main)',
+                customClass: {
+                    popup: 'glass-card border border-[var(--border-main)] rounded-2xl'
+                }
+            })
+
+            navigate('/dashboard')
         } catch (err) {
-            toast.error(err.message || 'Login failed')
+            Swal.fire({
+                icon: 'error',
+                title: 'Login Failed',
+                text: err.message || 'Invalid username or password',
+                confirmButtonColor: 'var(--brand-primary)',
+                background: 'var(--bg-main)',
+                color: 'var(--text-main)',
+                customClass: {
+                    popup: 'glass-card border border-[var(--border-main)] rounded-2xl'
+                }
+            })
         } finally {
             setLoading(false)
         }

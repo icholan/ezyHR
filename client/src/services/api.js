@@ -254,6 +254,10 @@ const api = {
     getComplianceReadiness: () => request('/iras/compliance-readiness'),
     getNSClaims: () => request('/iras/ns-claims'),
     addNSClaim: (data) => request('/iras/ns-claims', { method: 'POST', body: JSON.stringify(data) }),
+    getAuditLogs: (params = {}) => {
+        const query = new URLSearchParams(params).toString();
+        return request(`/audit-logs${query ? `?${query}` : ''}`);
+    },
 };
 
 export default api;

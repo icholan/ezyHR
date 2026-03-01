@@ -27,22 +27,46 @@ async function authMiddleware(req, res, next) {
         return res.status(401).json({ error: 'Invalid or expired token' });
     }
 
-    // Assign base user identity
     req.user = decoded;
 
-    // Entity Context Middleware Logic
-    // Supports: Entity-Id header, ?entityId query param, or auto-detect for single-entity users
     let entityId = req.headers['entity-id'] || req.query.entityId;
 
     try {
-        const db = await getDb();
+        const { pool } = require('../db/pg-init');
 
-        // If no entity provided, try to auto-detect if the user only has ONE entity
+        // 1. Verify User and Tenant status
+        const userRes = await pool.query(`
+            SELECT u.tenant_id, u.is_system_admin, t.status as tenant_status
+            FROM users u
+            JOIN tenants t ON u.tenant_id = t.id
+            WHERE u.id = $1
+        `, [req.user.id]);
+
+        if (userRes.rows.length === 0) {
+            return res.status(401).json({ error: 'User does not exist' });
+        }
+        const { tenant_id: userTenantId, is_system_admin: isSystemAdmin, tenant_status: tenantStatus } = userRes.rows[0];
+
+        // Enforce Tenant Status (Except for System Admins managing the platform)
+        if (tenantStatus !== 'active' && !isSystemAdmin) {
+            return res.status(403).json({ error: `Your account is ${tenantStatus}. Please contact support.` });
+        }
+
+        req.user.tenantId = userTenantId;
+        req.user.isSystemAdmin = !!isSystemAdmin;
+
+        // 2. If no entity provided, auto-detect primary entity for this user/tenant
         if (!entityId) {
-            const entitiesRes = db.exec('SELECT entity_id FROM user_entity_roles WHERE user_id = ?', [req.user.id]);
-            const userEntities = toObjects(entitiesRes);
-            if (userEntities.length === 1) {
-                entityId = userEntities[0].entity_id;
+            const entitiesRes = await pool.query(`
+                SELECT uer.entity_id 
+                FROM user_entity_roles uer
+                JOIN entities e ON uer.entity_id = e.id
+                WHERE uer.user_id = $1 AND e.tenant_id = $2
+                LIMIT 1
+            `, [req.user.id, userTenantId]);
+
+            if (entitiesRes.rows.length > 0) {
+                entityId = entitiesRes.rows[0].entity_id;
             }
         }
 
@@ -52,27 +76,44 @@ async function authMiddleware(req, res, next) {
                 return res.status(400).json({ error: 'Invalid entity ID format' });
             }
 
-            const roleResult = db.exec(
-                `SELECT role, managed_groups FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`,
-                [req.user.id, parsedEntityId]
-            );
+            // 3. Verify user has role AND entity belongs to user's tenant (Security Heart)
+            const roleRes = await pool.query(`
+                SELECT uer.role, uer.managed_groups 
+                FROM user_entity_roles uer
+                JOIN entities e ON uer.entity_id = e.id
+                WHERE uer.user_id = $1 AND uer.entity_id = $2 AND e.tenant_id = $3
+            `, [req.user.id, parsedEntityId, userTenantId]);
 
-            if (roleResult.length) {
-                const { columns, values } = roleResult[0];
-                const entityRole = values[0][columns.indexOf('role')];
-                let managedGroups = values[0][columns.indexOf('managed_groups')];
-                try { managedGroups = JSON.parse(managedGroups); } catch (e) { managedGroups = []; }
+            if (roleRes.rows.length > 0) {
+                const { role, managed_groups } = roleRes.rows[0];
+                let decodedGroups = [];
+                try {
+                    decodedGroups = typeof managed_groups === 'string' ? JSON.parse(managed_groups) : managed_groups;
+                } catch (e) {
+                    decodedGroups = [];
+                }
 
                 req.user.entityId = parsedEntityId;
-                req.user.role = entityRole;
-                req.user.managedGroups = managedGroups;
+                req.user.role = role;
+                req.user.managedGroups = decodedGroups;
+            } else {
+                // If they provided an Entity ID but have no role or it's cross-tenant
+                return res.status(403).json({ error: 'Access denied: Entity not found in your tenant group' });
             }
         }
     } catch (err) {
-        return res.status(500).json({ error: 'Failed to verify entity access: ' + err.message });
+        console.error('[Auth Middleware Error]', err);
+        return res.status(500).json({ error: 'Internal auth error: ' + err.message });
     }
 
     next();
 }
 
-module.exports = { authMiddleware, JWT_SECRET };
+function systemAdminMiddleware(req, res, next) {
+    if (!req.user || !req.user.isSystemAdmin) {
+        return res.status(403).json({ error: 'Access denied: System Admin privileges required' });
+    }
+    next();
+}
+
+module.exports = { authMiddleware, systemAdminMiddleware, JWT_SECRET };

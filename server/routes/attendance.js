@@ -275,7 +275,7 @@ router.get('/history', authMiddleware, async (req, res) => {
     try {
         const db = await getDb();
         const runs = await db.exec(`
-            SELECT t.*, e.full_name as employee_name, e.employee_id as employee_code
+            SELECT t.id, TO_CHAR(t.date, 'YYYY-MM-DD') as date, t.in_time, t.out_time, t.shift, t.remarks, e.full_name as employee_name, e.employee_id as employee_code
             FROM timesheets t
             JOIN employees e ON t.employee_id = e.id
             WHERE t.entity_id = ?
@@ -295,7 +295,7 @@ router.get('/monthly', authMiddleware, async (req, res) => {
         const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
         const endStr = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
         const runs = await db.exec(`
-            SELECT id, date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks
+            SELECT id, TO_CHAR(date, 'YYYY-MM-DD') as date, in_time, out_time, shift, ot_hours, ot_1_5_hours, ot_2_0_hours, normal_hours, ph_hours, late_mins, early_out_mins, performance_credit, remarks
             FROM timesheets WHERE entity_id = ? AND employee_id = ? AND date >= ? AND date <= ? ORDER BY date ASC
         `, [entityId, employeeId, startStr, endStr]);
         res.json(toObjects(runs));
@@ -367,30 +367,63 @@ router.post('/face-clock', authMiddleware, async (req, res) => {
         const today = sgtTime.toISOString().split('T')[0];
         const timeStr = String(sgtTime.getUTCHours()).padStart(2, '0') + String(sgtTime.getUTCMinutes()).padStart(2, '0');
 
-        const upsertRes = await db.exec(`
-            INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift)
-            VALUES (?, ?, ?, ?, 'Day')
-            ON CONFLICT (entity_id, employee_id, date) 
-            DO UPDATE SET 
-                out_time = CASE 
-                    WHEN timesheets.out_time IS NULL AND timesheets.in_time IS NOT NULL THEN EXCLUDED.in_time 
-                    ELSE timesheets.out_time 
-                END
-            RETURNING in_time, out_time
-        `, [entityId, bestMatch.id, today, timeStr]);
+        const currentHour = sgtTime.getUTCHours();
+        console.log(`[FACE_CLOCK] Attempting clock for ${bestMatch.full_name}, today=${today}, time=${timeStr}, sgtHour=${currentHour}`);
 
-        const resObj = toObjects(upsertRes)[0];
+        // MIDNIGHT CROSSOVER LOGIC:
+        // If it's early in the morning (e.g., before 06:00), 
+        // check if there's an open clock-in from YESTERDAY.
         let action = 'In';
+        let targetDate = today;
 
-        if (resObj.out_time === timeStr) {
-            action = 'Out';
-        } else if (!resObj.out_time) {
-            action = 'In';
-        } else {
-            return res.status(400).json({ error: 'Already clocked in and out today' });
+        if (currentHour < 6) {
+            const yesterdayDate = new Date(sgtTime.getTime() - (24 * 60 * 60 * 1000));
+            const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
+            console.log(`[FACE_CLOCK] Early morning detected (${currentHour}h), checking yesterday: ${yesterdayStr}`);
+
+            const prevDayRes = await db.exec('SELECT in_time, out_time FROM timesheets WHERE employee_id = ? AND date = ? AND entity_id = ?', [bestMatch.id, yesterdayStr, entityId]);
+            const prevDay = toObjects(prevDayRes)[0];
+
+            if (prevDay && prevDay.in_time && !prevDay.out_time) {
+                // We found an open clock-in from yesterday! Clock out for that record.
+                console.log(`[FACE_CLOCK] Found open clock-in for yesterday (${yesterdayStr}), clocking out...`);
+                await db.run('UPDATE timesheets SET out_time = ? WHERE employee_id = ? AND date = ? AND entity_id = ?', [timeStr, bestMatch.id, yesterdayStr, entityId]);
+                action = 'Out';
+                targetDate = yesterdayStr;
+            } else {
+                console.log(`[FACE_CLOCK] No open clock-in for yesterday (${yesterdayStr}), proceeding with today.`);
+            }
         }
+
+        if (action === 'In') {
+            console.log(`[FACE_CLOCK] UPSERTing for today: ${today}`);
+            const upsertRes = await db.exec(`
+                INSERT INTO timesheets (entity_id, employee_id, date, in_time, shift)
+                VALUES (?, ?, ?, ?, 'Day')
+                ON CONFLICT (entity_id, employee_id, date) 
+                DO UPDATE SET 
+                    out_time = CASE 
+                        WHEN timesheets.out_time IS NULL AND timesheets.in_time IS NOT NULL THEN EXCLUDED.in_time 
+                        ELSE timesheets.out_time 
+                    END
+                RETURNING in_time, out_time
+            `, [entityId, bestMatch.id, today, timeStr]);
+
+            const resObj = toObjects(upsertRes)[0];
+            console.log(`[FACE_CLOCK] UPSERT result:`, JSON.stringify(resObj));
+            if (resObj.out_time === timeStr) {
+                action = 'Out';
+            } else if (!resObj.out_time) {
+                action = 'In';
+            } else {
+                console.warn(`[FACE_CLOCK] Conflict: already clocked in (${resObj.in_time}) and out (${resObj.out_time}) today`);
+                return res.status(400).json({ error: 'Already clocked in and out today' });
+            }
+        }
+
         saveDb();
-        res.json({ message: `Successfully clocked ${action} for ${bestMatch.full_name}`, employee: bestMatch, action });
+        console.log(`[FACE_CLOCK] Success: ${action} for ${bestMatch.full_name} on ${targetDate}`);
+        res.json({ message: `Successfully clocked ${action} for ${bestMatch.full_name}`, employee: bestMatch, action, date: targetDate });
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

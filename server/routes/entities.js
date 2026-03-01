@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
+const auditLogger = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -39,10 +40,40 @@ router.post('/', authMiddleware, async (req, res) => {
     if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Access denied' });
     try {
         const db = await getDb();
-        const { name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier } = req.body;
+        const { pool } = require('../db/pg-init');
+        const {
+            name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier,
+            cpf_submission_no, iras_ais_id, bank_name, bank_account_no, bank_code, bank_branch_code, giro_customer_name,
+            is_active
+        } = req.body;
+
+        // Quota Check: Count current entities vs max_entities
+        const tenantRes = await pool.query('SELECT max_entities FROM tenants WHERE id = $1', [req.user.tenantId]);
+        const maxEntities = tenantRes.rows[0]?.max_entities || 5;
+
+        const countRes = await pool.query('SELECT COUNT(*) FROM entities WHERE tenant_id = $1', [req.user.tenantId]);
+        const currentCount = parseInt(countRes.rows[0].count);
+
+        if (currentCount >= maxEntities) {
+            return res.status(400).json({
+                error: `Limit Reached: Your plan allows a maximum of ${maxEntities} entities. Please upgrade to add more.`
+            });
+        }
 
         // Insert Entity
-        const insertResult = await db.exec('INSERT INTO entities (name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier) VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0]);
+        const insertResult = await db.exec(
+            `INSERT INTO entities (
+                tenant_id, name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier,
+                cpf_submission_no, iras_ais_id, bank_name, bank_account_no, bank_code, bank_branch_code, giro_customer_name,
+                is_active
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+            [
+                req.user.tenantId,
+                name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0,
+                cpf_submission_no || '', iras_ais_id || '', bank_name || '', bank_account_no || '', bank_code || '', bank_branch_code || '', giro_customer_name || '',
+                is_active === undefined ? true : is_active
+            ]
+        );
 
         // Get inserted ID
         const entityId = insertResult[0].values[0][0];
@@ -54,7 +85,17 @@ router.post('/', authMiddleware, async (req, res) => {
         );
 
         saveDb();
-        res.status(201).json({ id: entityId, name, uen, address, contact_number, website, email_domains, role: 'Admin', managed_groups: '[]' });
+        await auditLogger.log({
+            tenantId: req.user.tenantId, // Admin creating a new entity is still within their tenant's data isolated scope or global
+            userId: req.user.id,
+            action: 'CREATE_ENTITY',
+            entityType: 'entities',
+            entityId: entityId,
+            newValues: { name, uen, is_active },
+            req
+        });
+
+        res.status(201).json({ id: entityId, name, uen, address, contact_number, website, email_domains, is_active, role: 'Admin', managed_groups: '[]' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -65,9 +106,41 @@ router.put('/:id', authMiddleware, async (req, res) => {
     if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Access denied' });
     try {
         const db = await getDb();
-        const { name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier } = req.body;
-        await db.run('UPDATE entities SET name = ?, uen = ?, address = ?, contact_number = ?, website = ?, email_domains = ?, logo_url = ?, performance_multiplier = ? WHERE id = ?', [name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0, req.params.id]);
+        const {
+            name, uen, address, contact_number, website, email_domains, logo_url, performance_multiplier,
+            cpf_submission_no, iras_ais_id, bank_name, bank_account_no, bank_code, bank_branch_code, giro_customer_name,
+            is_active
+        } = req.body;
+
+        // Capture OLD values before update
+        const oldResult = await db.exec('SELECT name, uen, is_active FROM entities WHERE id = ?', [req.params.id]);
+        const oldValues = toObjects(oldResult)[0];
+
+        await db.run(
+            `UPDATE entities SET 
+                name = ?, uen = ?, address = ?, contact_number = ?, website = ?, email_domains = ?, logo_url = ?, performance_multiplier = ?,
+                cpf_submission_no = ?, iras_ais_id = ?, bank_name = ?, bank_account_no = ?, bank_code = ?, bank_branch_code = ?, giro_customer_name = ?,
+                is_active = ?
+            WHERE id = ?`,
+            [
+                name, uen, address || '', contact_number || '', website || '', email_domains || '', logo_url || '', performance_multiplier || 0,
+                cpf_submission_no || '', iras_ais_id || '', bank_name || '', bank_account_no || '', bank_code || '', bank_branch_code || '', giro_customer_name || '',
+                is_active,
+                req.params.id
+            ]
+        );
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'UPDATE_ENTITY',
+            entityType: 'entities',
+            entityId: req.params.id,
+            oldValues: oldValues,
+            newValues: { name, uen, is_active },
+            req
+        });
+
         res.json({ message: 'Entity updated successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -79,10 +152,18 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (req.user.role !== 'Admin') return res.status(403).json({ error: 'Access denied' });
     try {
         const db = await getDb();
-        // Check if there are constraints or just delete (cascade if we enabled it, otherwise manual)
         await db.run('DELETE FROM user_entity_roles WHERE entity_id = ?', [req.params.id]);
         await db.run('DELETE FROM entities WHERE id = ?', [req.params.id]);
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'DELETE_ENTITY',
+            entityType: 'entities',
+            entityId: req.params.id,
+            req
+        });
+
         res.json({ message: 'Entity deleted successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });

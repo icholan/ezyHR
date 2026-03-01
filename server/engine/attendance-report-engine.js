@@ -17,25 +17,25 @@ function toObjects(result) {
  * @param {string|number} entityId - Entity ID
  * @returns {Array} List of attendance objects for each day in the month
  */
-function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
+async function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
     const monthPadded = String(month).padStart(2, '0');
     const yearStr = String(year);
 
     // 1. Fetch holidays
-    const holidays = toObjects(db.exec(
+    const holidays = toObjects(await db.exec(
         'SELECT date, name FROM holidays WHERE entity_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
         [entityId, yearStr, monthPadded]
     ));
 
     // 2. Fetch timesheets
-    const timesheets = toObjects(db.exec(
-        'SELECT * FROM timesheets WHERE employee_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
+    const timesheets = toObjects(await db.exec(
+        'SELECT *, TO_CHAR(date, \'YYYY-MM-DD\') as date_str FROM timesheets WHERE employee_id = ? AND TO_CHAR(date, \'YYYY\') = ? AND TO_CHAR(date, \'MM\') = ?',
         [empId, yearStr, monthPadded]
     ));
 
     // 3. Fetch approved leave requests
-    const leaves = toObjects(db.exec(`
-        SELECT lr.*, lt.name as leave_type_name 
+    const leaves = toObjects(await db.exec(`
+        SELECT lr.*, lt.name as leave_type_name, TO_CHAR(lr.start_date, 'YYYY-MM-DD') as start_str, TO_CHAR(lr.end_date, 'YYYY-MM-DD') as end_str
         FROM leave_requests lr 
         JOIN leave_types lt ON lr.leave_type_id = lt.id 
         WHERE lr.employee_id = ? AND lr.status = 'Approved'
@@ -44,7 +44,7 @@ function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
     `, [empId, yearStr, monthPadded, yearStr, monthPadded]));
 
     // 4. Fetch Employee Details for Rest Day
-    const emp = toObjects(db.exec('SELECT rest_day FROM employees WHERE id = ?', [empId]))[0];
+    const emp = toObjects(await db.exec('SELECT rest_day FROM employees WHERE id = ?', [empId]))[0];
 
     const dayMap = { 'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6 };
     const restDayIdx = dayMap[emp?.rest_day] !== undefined ? dayMap[emp.rest_day] : 0;
@@ -82,14 +82,14 @@ function generateMonthlyAttendanceReport(db, empId, year, month, entityId) {
         }
 
         // Check for Leave
-        const leave = leaves.find(l => dateStr >= l.start_date && dateStr <= l.end_date);
+        const leave = leaves.find(l => dateStr >= l.start_str && dateStr <= l.end_str);
         if (leave) {
             dayInfo.status = leave.leave_type_name;
             dayInfo.remarks = leave.reason || '';
         }
 
         // Check Timesheets
-        const ts = timesheets.find(t => t.date === dateStr);
+        const ts = timesheets.find(t => t.date_str === dateStr);
         const fmt = (v) => (v === 0 || v === '0' || !v) ? '-' : v;
 
         if (ts) {

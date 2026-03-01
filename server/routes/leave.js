@@ -1,6 +1,7 @@
 const express = require('express');
 const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
+const auditLogger = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -486,6 +487,15 @@ router.post('/request', authMiddleware, async (req, res) => {
         );
         saveDb();
 
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'SUBMIT_LEAVE',
+            entityType: 'leave_requests',
+            newValues: { employee_id, leave_type_id, start_date, end_date, days, reason },
+            req
+        });
+
         res.status(201).json({ message: 'Leave request submitted' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -521,6 +531,17 @@ router.put('/request/:id/approve', authMiddleware, async (req, res) => {
         );
 
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'APPROVE_LEAVE',
+            entityType: 'leave_requests',
+            entityId: req.params.id,
+            oldValues: { status: lr.status },
+            newValues: { status: 'Approved' },
+            req
+        });
+
         res.json({ message: 'Leave approved' });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -541,8 +562,23 @@ router.put('/request/:id/reject', authMiddleware, async (req, res) => {
         `, [req.params.id, entityId]);
         if (!reqResult.length || !reqResult[0].values.length) return res.status(404).json({ error: 'Request not found or access denied' });
 
+        // Fetch current status before update
+        const currentReq = await db.exec('SELECT status FROM leave_requests WHERE id = ?', [req.params.id]);
+        const oldStatus = toObjects(currentReq)[0]?.status;
+
         await db.run('UPDATE leave_requests SET status = \'Rejected\' WHERE id = ?', [req.params.id]);
         saveDb();
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'REJECT_LEAVE',
+            entityType: 'leave_requests',
+            entityId: req.params.id,
+            oldValues: { status: oldStatus },
+            newValues: { status: 'Rejected' },
+            req
+        });
+
         res.json({ message: 'Leave rejected' });
     } catch (err) {
         res.status(500).json({ error: err.message });

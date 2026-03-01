@@ -268,7 +268,7 @@ router.get('/run-payslips/:runId', authMiddleware, async (req, res) => {
 
         // Append attendance report for each payslip
         for (let ps of payslips) {
-            ps.timesheets = generateMonthlyAttendanceReport(db, ps.employee_id, run.period_year, run.period_month, entityId);
+            ps.timesheets = await generateMonthlyAttendanceReport(db, ps.employee_id, run.period_year, run.period_month, entityId);
         }
 
         res.json(payslips);
@@ -333,7 +333,7 @@ router.get('/detailed-attendance/:year/:month/:employeeId', authMiddleware, asyn
         if (!employees.length) return res.status(404).json({ error: 'Employee not found' });
         const emp = employees[0];
 
-        const report = generateMonthlyAttendanceReport(db, employeeId, year, month, entityId);
+        const report = await generateMonthlyAttendanceReport(db, employeeId, year, month, entityId);
 
         res.json({ employee: emp, month, year, report });
     } catch (err) {

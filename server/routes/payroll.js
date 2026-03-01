@@ -3,6 +3,7 @@ const { getDb, saveDb } = require('../db/pg-init');
 const { authMiddleware } = require('../middleware/auth');
 const { processEmployeePayroll } = require('../engine/payroll-engine');
 const { generateMonthlyAttendanceReport } = require('../engine/attendance-report-engine');
+const auditLogger = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -332,6 +333,16 @@ router.post('/run', authMiddleware, async (req, res) => {
         const finalRun = toObjects((await db.exec('SELECT * FROM payroll_runs WHERE id = ?', [runId])))[0];
         const payslips = toObjects(await db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [runId]));
 
+        await auditLogger.log({
+            tenantId: req.user.tenantId,
+            userId: req.user.id,
+            action: 'PROCESS_PAYROLL',
+            entityType: 'payroll_runs',
+            entityId: runId,
+            newValues: { year, month, employee_group, totalNet, totalGross },
+            req
+        });
+
         res.status(201).json({ run: finalRun, payslips });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -375,7 +386,7 @@ router.get('/payslip/:id', authMiddleware, async (req, res) => {
         const payslip = payslips[0];
 
         // Fetch full attendance report for this employee/month
-        payslip.timesheets = generateMonthlyAttendanceReport(db, payslip.employee_id, payslip.period_year, payslip.period_month, req.user.entityId);
+        payslip.timesheets = await generateMonthlyAttendanceReport(db, payslip.employee_id, payslip.period_year, payslip.period_month, req.user.entityId);
 
         res.json(payslip);
     } catch (err) {

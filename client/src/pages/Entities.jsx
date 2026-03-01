@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import DeleteConfirmModal from '../components/DeleteConfirmModal'
 
 export default function Entities() {
-    const { role, setEntities, activeEntity, switchEntity } = useAuth()
+    const { role, loadEntities } = useAuth()
+    const navigate = useNavigate()
     const [loading, setLoading] = useState(false)
     const [localEntities, setLocalEntities] = useState([])
-    const [showModal, setShowModal] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [itemToDelete, setItemToDelete] = useState(null)
-    const [editing, setEditing] = useState(null)
-    const [form, setForm] = useState({ name: '', uen: '', address: '', contact_number: '', website: '', email_domains: '', performance_multiplier: 0, logo_url: '' })
 
     const canEdit = role === 'Admin'
 
@@ -33,42 +32,11 @@ export default function Entities() {
     }, [])
 
     const handleEdit = (item) => {
-        setEditing(item)
-        setForm({ ...item })
-        setShowModal(true)
+        navigate(`/entities/edit/${item.id}`)
     }
 
     const handleAdd = () => {
-        setEditing(null)
-        setForm({ name: '', uen: '', address: '', contact_number: '', website: '', email_domains: '', performance_multiplier: 0, logo_url: '' })
-        setShowModal(true)
-    }
-
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        try {
-            if (editing) {
-                await api.updateEntity(editing.id, form)
-                // Update global context if the active entity was edited
-                if (activeEntity && activeEntity.id === editing.id) {
-                    const updatedEntity = { ...activeEntity, ...form };
-                    switchEntity(updatedEntity);
-                }
-            } else {
-                await api.createEntity(form)
-            }
-
-            toast.success('Entity saved')
-            setShowModal(false)
-
-            // Refresh global entities list
-            const allEntities = await api.getEntities();
-            setEntities(allEntities);
-
-            loadData()
-        } catch (err) {
-            toast.error(err.message)
-        }
+        navigate('/entities/add')
     }
 
     const handleDelete = async () => {
@@ -78,7 +46,10 @@ export default function Entities() {
             toast.success('Deleted successfully')
             setShowDeleteModal(false)
             setItemToDelete(null)
+
+            // Refresh global list via context if needed, or just reload data
             loadData()
+            if (loadEntities) await loadEntities()
         } catch (err) {
             toast.error(err.message)
         }
@@ -94,7 +65,7 @@ export default function Entities() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-[var(--text-main)]">Business Entities</h1>
-                    <p className="text-[var(--text-muted)] mt-1">Manage physical business divisions and UENs.</p>
+                    <p className="text-[var(--text-muted)] mt-1">Manage physical business divisions and Singapore legal identities.</p>
                 </div>
                 {canEdit && (
                     <button onClick={handleAdd} className="btn-primary w-full sm:w-auto">+ Add Entity</button>
@@ -108,15 +79,27 @@ export default function Entities() {
                             <tr>
                                 <th>Name</th>
                                 <th>UEN</th>
+                                <th>Status</th>
                                 <th>Perf. Multiplier</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {localEntities.map(item => (
-                                <tr key={item.id}>
-                                    <td className="font-medium text-[var(--text-main)]">{item.name}</td>
+                                <tr key={item.id} className={!item.is_active ? 'opacity-60 grayscale-[0.5]' : ''}>
+                                    <td className="font-medium text-[var(--text-main)]">
+                                        <div className="flex items-center gap-2">
+                                            {item.name}
+                                            {!item.is_active && <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold uppercase">Inactive</span>}
+                                        </div>
+                                    </td>
                                     <td>{item.uen}</td>
+                                    <td>
+                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${item.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-500/10 text-slate-400 border border-slate-500/20'}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${item.is_active ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`}></span>
+                                            {item.is_active ? 'Active' : 'Inactive'}
+                                        </span>
+                                    </td>
                                     <td>{item.performance_multiplier || 0}</td>
                                     <td>
                                         {canEdit && (
@@ -130,7 +113,7 @@ export default function Entities() {
                             ))}
                             {localEntities.length === 0 && (
                                 <tr>
-                                    <td colSpan="3" className="text-center py-8 text-[var(--text-muted)]">No entities found.</td>
+                                    <td colSpan="4" className="text-center py-8 text-[var(--text-muted)]">No entities found.</td>
                                 </tr>
                             )}
                         </tbody>
@@ -138,108 +121,6 @@ export default function Entities() {
                 )}
             </div>
 
-            {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-                    <div className="card-base p-6 w-full max-w-2xl animate-slide-up" style={{ background: 'rgba(15, 23, 42, 0.95)' }}>
-                        <h2 className="text-xl font-bold text-[var(--text-main)] mb-6">{editing ? 'Edit' : 'Add'} Entity</h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Entity Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.name || ''}
-                                        onChange={e => setForm({ ...form, name: e.target.value })}
-                                        className="input-base w-full"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Company UEN</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.uen || ''}
-                                        onChange={e => setForm({ ...form, uen: e.target.value })}
-                                        className="input-base w-full"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Perf. Multiplier (Reward Credits)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={form.performance_multiplier || 0}
-                                        onChange={e => setForm({ ...form, performance_multiplier: parseFloat(e.target.value) || 0 })}
-                                        className="input-base w-full"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Contact Number</label>
-                                    <input
-                                        type="text"
-                                        value={form.contact_number || ''}
-                                        onChange={e => setForm({ ...form, contact_number: e.target.value })}
-                                        className="input-base w-full"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Website</label>
-                                    <input
-                                        type="url"
-                                        value={form.website || ''}
-                                        onChange={e => setForm({ ...form, website: e.target.value })}
-                                        className="input-base w-full"
-                                        placeholder="https://"
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Address</label>
-                                    <textarea
-                                        value={form.address || ''}
-                                        onChange={e => setForm({ ...form, address: e.target.value })}
-                                        className="input-base w-full min-h-[60px]"
-                                    />
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Email Domains (comma separated)</label>
-                                    <input
-                                        type="text"
-                                        value={form.email_domains || ''}
-                                        onChange={e => setForm({ ...form, email_domains: e.target.value })}
-                                        className="input-base w-full"
-                                        placeholder="gmail.com, company.com"
-                                    />
-                                    <p className="text-[10px] text-[var(--text-muted)] mt-1">These domains will be suggested in the Employee form.</p>
-                                </div>
-
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Logo URL (External Image Link)</label>
-                                    <input
-                                        type="url"
-                                        value={form.logo_url || ''}
-                                        onChange={e => setForm({ ...form, logo_url: e.target.value })}
-                                        className="input-base w-full"
-                                        placeholder="https://example.com/logo.png"
-                                    />
-                                    <p className="text-[10px] text-[var(--text-muted)] mt-1">This logo will appear at the top of KETs and Payslips.</p>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3 pt-4 border-t border-[var(--border-main)] mt-6">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-2.5 rounded-xl border border-[var(--border-main)] text-[var(--text-muted)] hover:bg-[var(--bg-input)] transition-all">Cancel</button>
-                                <button type="submit" className="btn-primary flex-1">Save</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
             <DeleteConfirmModal
                 isOpen={showDeleteModal}
                 onClose={() => setShowDeleteModal(false)}
