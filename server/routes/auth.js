@@ -27,6 +27,12 @@ router.post('/signup', async (req, res) => {
             return res.status(400).json({ error: 'Missing required fields' });
         }
 
+        // Email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(username)) {
+            return res.status(400).json({ error: 'Username must be a valid email address' });
+        }
+
         await client.query('BEGIN');
 
         // 1. Create Tenant
@@ -216,22 +222,33 @@ router.post('/change-password', authMiddleware, async (req, res) => {
             return res.status(400).json({ error: 'Both old and new passwords are required' });
         }
 
-        const db = await getDb();
-        const userResult = await db.exec('SELECT * FROM users WHERE id = ?', [req.user.id]);
-        const userList = toObjects(userResult);
+        const userRes = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        if (!userList.length) return res.status(404).json({ error: 'User not found' });
-        const user = userList[0];
+        const user = userRes.rows[0];
 
         if (!bcrypt.compareSync(oldPassword, user.password_hash)) {
             return res.status(401).json({ error: 'Incorrect current password' });
         }
 
         const newHash = bcrypt.hashSync(newPassword, 10);
-        await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.id]);
-        saveDb();
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
 
         res.json({ message: 'Password updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// PUT /api/auth/profile - Update user profile
+router.post('/update-profile', authMiddleware, async (req, res) => {
+    try {
+        const { fullName } = req.body;
+        if (!fullName) return res.status(400).json({ error: 'Full name is required' });
+
+        await pool.query('UPDATE users SET full_name = $1 WHERE id = $2', [fullName, req.user.id]);
+
+        res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -240,22 +257,18 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 // GET /api/auth/me - Get current user profile and tenant info
 router.get('/me', authMiddleware, async (req, res) => {
     try {
-        const db = await getDb();
-        const user = await db.exec(`
-            SELECT u.*, t.name as tenant_display_name 
+        const result = await pool.query(`
+            SELECT u.id, u.username, u.full_name, u.tenant_id, t.name as tenant_display_name, u.is_system_admin
             FROM users u
             JOIN tenants t ON u.tenant_id = t.id
-            WHERE u.id = ${req.user.id}
-        `);
+            WHERE u.id = $1
+        `, [req.user.id]);
 
-        if (!user.length || !user[0].values.length) {
+        if (result.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const row = user[0].values[0];
-        const columns = user[0].columns;
-        const userData = {};
-        columns.forEach((col, i) => userData[col] = row[i]);
+        const userData = result.rows[0];
 
         res.json({
             id: userData.id,

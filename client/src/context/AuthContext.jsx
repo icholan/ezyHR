@@ -11,6 +11,24 @@ export function AuthProvider({ children }) {
     const [entities, setEntities] = useState([]);
     const [activeEntity, setActiveEntity] = useState(null);
 
+    const refreshUser = async () => {
+        const savedToken = localStorage.getItem('hrms_token');
+        if (!savedToken) return;
+
+        try {
+            const res = await fetch('/api/auth/me', {
+                headers: { 'Authorization': `Bearer ${savedToken}` }
+            });
+            const data = await res.json();
+            if (data.id) {
+                setUser(data);
+                localStorage.setItem('hrms_user', JSON.stringify(data));
+            }
+        } catch (err) {
+            console.error('Failed to sync profile', err);
+        }
+    };
+
     useEffect(() => {
         const savedToken = localStorage.getItem('hrms_token');
         const savedUser = localStorage.getItem('hrms_user');
@@ -18,25 +36,13 @@ export function AuthProvider({ children }) {
 
         if (savedToken && savedUser) {
             setToken(savedToken);
-            const userObj = JSON.parse(savedUser);
-            setUser(userObj);
+            setUser(JSON.parse(savedUser));
 
             if (savedEntity) {
                 setActiveEntity(JSON.parse(savedEntity));
             }
 
-            // Fallback: Fetch latest profile to ensure tenantName is up to date
-            fetch('/api/auth/me', {
-                headers: { 'Authorization': `Bearer ${savedToken}` }
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.id) {
-                        setUser(data);
-                        localStorage.setItem('hrms_user', JSON.stringify(data));
-                    }
-                })
-                .catch(err => console.error('Failed to sync profile', err));
+            refreshUser();
         }
         setLoading(false);
     }, []);
@@ -82,7 +88,7 @@ export function AuthProvider({ children }) {
         <AuthContext.Provider value={{
             user, token, loading, login, logout, isAuthenticated: !!token,
             entities, setEntities, activeEntity, switchEntity,
-            role, managedGroups
+            role, managedGroups, refreshUser
         }}>
             {children}
         </AuthContext.Provider>

@@ -54,10 +54,24 @@ router.post('/', authMiddleware, async (req, res) => {
         const entityId = req.user.entityId;
 
         // Check if username exists globally
-        const existing = await db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(u.username)) {
+            return res.status(400).json({ error: 'Username must be a valid email address' });
+        }
+
+        const existing = await db.exec(`SELECT id, tenant_id FROM users WHERE username = ?`, [u.username]);
         let userId;
 
         if (existing.length && existing[0].values.length) {
+            // User exists, but must belong to the SAME tenant
+            const existingUser = existing[0].values[0];
+            const existingTenantId = existingUser[1];
+
+            if (existingTenantId !== req.user.tenantId) {
+                return res.status(400).json({ error: 'This email is already registered in another organization.' });
+            }
+
+            userId = existingUser[0];
             // User exists, just assign them to this entity if not already
             userId = existing[0].values[0][0];
             const hasRole = await db.exec(`SELECT id FROM user_entity_roles WHERE user_id = ? AND entity_id = ?`, [userId, entityId]);
@@ -65,11 +79,11 @@ router.post('/', authMiddleware, async (req, res) => {
                 return res.status(400).json({ error: 'User is already assigned to this entity' });
             }
         } else {
-            // New user, create them globally
+            // New user, create them globally with tenant scope
             if (!u.password) return res.status(400).json({ error: 'Password is required for new users' });
             const pwdHash = bcrypt.hashSync(u.password, 10);
-            await db.run(`INSERT INTO users (username, password_hash, full_name) VALUES (?, ?, ?)`,
-                [u.username, pwdHash, u.full_name]);
+            await db.run(`INSERT INTO users (tenant_id, username, password_hash, full_name) VALUES (?, ?, ?, ?)`,
+                [req.user.tenantId, u.username, pwdHash, u.full_name]);
 
             const newUser = await db.exec(`SELECT id FROM users WHERE username = ?`, [u.username]);
             userId = newUser[0].values[0][0];

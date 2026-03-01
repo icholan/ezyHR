@@ -125,7 +125,7 @@ export default function Users() {
                         <table className="table-theme">
                             <thead>
                                 <tr>
-                                    <th>Username</th>
+                                    <th>Email Address (Login ID)</th>
                                     <th>Full Name</th>
                                     <th>Role</th>
                                     <th>Managed Groups</th>
@@ -179,8 +179,8 @@ export default function Users() {
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Username</label>
-                                    <input required type="text" className="input-base w-full" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} disabled={!!editing} />
+                                    <label className="block text-sm font-medium text-[var(--text-muted)] mb-1.5">Email Address</label>
+                                    <input required type="email" className="input-base w-full" placeholder="user@company.com" value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} disabled={!!editing} />
                                 </div>
 
                                 {!editing && (

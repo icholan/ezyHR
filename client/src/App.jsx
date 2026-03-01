@@ -29,6 +29,7 @@ import FaceRegistration from './pages/FaceRegistration'
 import FaceAttendance from './pages/FaceAttendance'
 import AuditLogs from './pages/AuditLogs'
 import PlatformAdmin from './pages/PlatformAdmin'
+import Profile from './pages/Profile'
 
 import Landing from './pages/Landing'
 import Signup from './pages/Signup'
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/customers" element={<Customers />} />
         <Route path="/sites" element={<Sites />} />
         <Route path="/platform-admin" element={<PlatformAdmin />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>

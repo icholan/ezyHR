@@ -1,5 +1,6 @@
 const express = require('express');
 const { pool } = require('../db/pg-init');
+const bcrypt = require('bcryptjs');
 const { authMiddleware, systemAdminMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -59,6 +60,47 @@ router.get('/stats', async (req, res) => {
                 (SELECT COUNT(*) FROM employees) as total_employees
         `);
         res.json(stats.rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/tenants/:id/entities - Get all entities for a tenant
+router.get('/tenants/:id/entities', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM entities WHERE tenant_id = $1 ORDER BY name', [req.params.id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/admin/tenants/:id/users - Get all users for a tenant
+router.get('/tenants/:id/users', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT u.id, u.username, u.full_name, u.created_at, u.tenant_id,
+            (SELECT string_agg(role, ', ') FROM user_entity_roles WHERE user_id = u.id) as roles
+            FROM users u 
+            WHERE u.tenant_id = $1 
+            ORDER BY u.created_at DESC
+        `, [req.params.id]);
+        res.json(result.rows);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/admin/users/:id/reset-password - Admin reset password
+router.post('/users/:id/reset-password', async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+        if (!newPassword) return res.status(400).json({ error: 'New password is required' });
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, req.params.id]);
+
+        res.json({ message: 'Password reset successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -90,14 +90,14 @@ export default function Signup() {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-bold text-[var(--text-main)] mb-2">Username</label>
+                            <label className="block text-sm font-bold text-[var(--text-main)] mb-2">Work Email (Login ID)</label>
                             <input
-                                type="text"
+                                type="email"
                                 required
                                 value={form.username}
                                 onChange={e => setForm({ ...form, username: e.target.value })}
                                 className="input-base"
-                                placeholder="Login ID"
+                                placeholder="name@company.com"
                             />
                         </div>
 

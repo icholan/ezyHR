@@ -240,7 +240,7 @@ export default function Layout() {
 
                     {/* User Profile & Logout */}
                     <div className="flex items-center justify-between p-2 rounded-2xl bg-[var(--bg-main)]/50 border border-[var(--border-main)]">
-                        <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="flex items-center gap-3 overflow-hidden cursor-pointer hover:bg-[var(--brand-primary)]/10 p-1 rounded-xl transition-all" onClick={() => navigate('/profile')}>
                             <div className="w-8 h-8 rounded-full bg-[var(--brand-primary)] flex shrink-0 items-center justify-center text-white text-xs font-bold shadow-sm">
                                 {user?.fullName?.charAt(0) || 'A'}
                             </div>
@@ -280,9 +280,13 @@ export default function Layout() {
                         </button>
 
                         <div className="pl-4 py-1 ml-1 border-l border-[var(--border-main)] flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full overflow-hidden bg-[var(--brand-primary)] flex justify-center items-center text-white font-bold text-base shadow-sm">
+                            <button
+                                onClick={() => navigate('/profile')}
+                                className="w-10 h-10 rounded-full overflow-hidden bg-[var(--brand-primary)] flex justify-center items-center text-white font-bold text-base shadow-sm hover:scale-105 transition-transform"
+                                title="My Profile"
+                            >
                                 {user?.fullName?.charAt(0) || 'A'}
-                            </div>
+                            </button>
                         </div>
                     </div>
                 </header>

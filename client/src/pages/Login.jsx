@@ -5,7 +5,7 @@ import Swal from 'sweetalert2'
 import api from '../services/api'
 
 export default function Login() {
-    const [username, setUsername] = useState('')
+    const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [loading, setLoading] = useState(false)
     const { login } = useAuth()
@@ -15,7 +15,7 @@ export default function Login() {
         e.preventDefault()
         setLoading(true)
         try {
-            const data = await api.login(username, password)
+            const data = await api.login(email, password)
             login(data.token, data.user)
 
             // Premium Success Alert
@@ -37,7 +37,7 @@ export default function Login() {
             Swal.fire({
                 icon: 'error',
                 title: 'Login Failed',
-                text: err.message || 'Invalid username or password',
+                text: err.message || 'Invalid email or password',
                 confirmButtonColor: 'var(--brand-primary)',
                 background: 'var(--bg-main)',
                 color: 'var(--text-main)',
@@ -67,13 +67,13 @@ export default function Login() {
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Username</label>
+                        <label className="block text-sm font-medium text-[var(--text-muted)] mb-2">Email Address</label>
                         <input
-                            type="text"
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
                             className="input-base"
-                            placeholder="Enter username"
+                            placeholder="Enter your business email"
                             required
                         />
                     </div>
