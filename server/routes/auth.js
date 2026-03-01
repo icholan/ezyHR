@@ -136,8 +136,12 @@ router.post('/login', async (req, res) => {
         }
 
         // Check Tenant Status
-        const tenantRes = await pool.query('SELECT status FROM tenants WHERE id = $1', [userData.tenant_id]);
-        const tenantStatus = tenantRes.rows[0]?.status || 'pending';
+        const tenantRes = await pool.query(
+            'SELECT status, onboarding_completed, onboarding_step FROM tenants WHERE id = $1',
+            [userData.tenant_id]
+        );
+        const tenantData = tenantRes.rows[0] || { status: 'pending', onboarding_completed: false, onboarding_step: 1 };
+        const tenantStatus = tenantData.status;
 
         if (tenantStatus !== 'active' && !userData.is_system_admin) {
             const message = tenantStatus === 'pending'
@@ -186,7 +190,9 @@ router.post('/login', async (req, res) => {
                 fullName: userData.full_name,
                 tenantId: userData.tenant_id,
                 tenantName: userData.tenant_display_name,
-                isSystemAdmin: !!userData.is_system_admin
+                isSystemAdmin: !!userData.is_system_admin,
+                onboardingCompleted: tenantData.onboarding_completed,
+                onboardingStep: tenantData.onboarding_step
             },
             entities: entities
         });
@@ -273,13 +279,22 @@ router.get('/me', authMiddleware, async (req, res) => {
 
         const userData = result.rows[0];
 
+        // Get tenant onboarding status
+        const tenantRes = await pool.query(
+            'SELECT onboarding_completed, onboarding_step FROM tenants WHERE id = $1',
+            [userData.tenant_id]
+        );
+        const tenantData = tenantRes.rows[0] || { onboarding_completed: false, onboarding_step: 1 };
+
         res.json({
             id: userData.id,
             username: userData.username,
             fullName: userData.full_name,
             tenantId: userData.tenant_id,
             tenantName: userData.tenant_display_name,
-            isSystemAdmin: !!userData.is_system_admin
+            isSystemAdmin: !!userData.is_system_admin,
+            onboardingCompleted: tenantData.onboarding_completed,
+            onboardingStep: tenantData.onboarding_step
         });
     } catch (err) {
         res.status(500).json({ error: err.message });

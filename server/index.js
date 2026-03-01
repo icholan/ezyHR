@@ -5,6 +5,7 @@ const { getDb, reloadDb } = require('./db/pg-init');
 
 console.log('🚀 SERVER RESTARTING - TRANSLATE ROUTE ACTIVE');
 const authRoutes = require('./routes/auth');
+const onboardingRoutes = require('./routes/tenant_onboarding');
 const employeeRoutes = require('./routes/employees');
 const ketsRoutes = require('./routes/kets');
 const leaveRoutes = require('./routes/leave');
@@ -39,6 +40,7 @@ app.use(express.static(path.join(__dirname, '../client/dist')));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/onboarding', onboardingRoutes);
 console.log('📋 Auth Routes Keys:', Object.keys(authRoutes));
 app.use('/api/employees', employeeRoutes);
 app.use('/api/translate', translateRoutes);

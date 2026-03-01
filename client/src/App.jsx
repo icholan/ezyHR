@@ -30,6 +30,7 @@ import FaceAttendance from './pages/FaceAttendance'
 import AuditLogs from './pages/AuditLogs'
 import PlatformAdmin from './pages/PlatformAdmin'
 import Profile from './pages/Profile'
+import OnboardingWizard from './pages/OnboardingWizard'
 
 import Landing from './pages/Landing'
 import Signup from './pages/Signup'
@@ -37,7 +38,7 @@ import Signup from './pages/Signup'
 import { useEffect, useState } from 'react'
 
 function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading: authLoading, setEntities, switchEntity, activeEntity, logout } = useAuth()
+  const { isAuthenticated, user, loading: authLoading, setEntities, switchEntity, activeEntity, logout } = useAuth()
   const [entitiesLoading, setEntitiesLoading] = useState(false)
 
   useEffect(() => {
@@ -70,6 +71,13 @@ function ProtectedRoute({ children }) {
     )
   }
 
+  const isOnboarded = user?.onboardingCompleted === true;
+  const isSysAdmin = !!(user?.isSystemAdmin || user?.is_system_admin);
+
+  if (isAuthenticated && !isOnboarded && !isSysAdmin && window.location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" />
+  }
+
   return isAuthenticated ? children : <Navigate to="/login" />
 }
 
@@ -81,6 +89,8 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" /> : <Signup />} />
+
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingWizard /></ProtectedRoute>} />
 
       <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<Dashboard />} />

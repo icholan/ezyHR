@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export default function Landing() {
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
 
     return (
         <div className="min-h-screen bg-[var(--bg-main)] overflow-x-hidden font-sans">
@@ -15,7 +15,15 @@ export default function Landing() {
                     </div>
                     <div className="flex items-center gap-6">
                         {isAuthenticated ? (
-                            <Link to="/" className="btn-primary py-2 px-6 text-sm">Go to Dashboard</Link>
+                            <>
+                                <Link to="/dashboard" className="text-sm font-semibold text-[var(--text-main)] hover:text-[var(--brand-primary)] transition-colors">Go to Dashboard</Link>
+                                <button
+                                    onClick={logout}
+                                    className="btn-primary py-2 px-6 text-sm bg-rose-500 hover:bg-rose-600 border-none shadow-rose-500/20"
+                                >
+                                    Log Out
+                                </button>
+                            </>
                         ) : (
                             <>
                                 <Link to="/login" className="text-sm font-semibold text-[var(--text-main)] hover:text-[var(--brand-primary)] transition-colors">Log In</Link>
