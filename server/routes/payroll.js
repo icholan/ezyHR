@@ -10,9 +10,19 @@ const router = express.Router();
 function toObjects(result) {
     if (!result.length) return [];
     const { columns, values } = result[0];
+    const numericCols = [
+        'total_gross', 'total_net', 'total_cpf_employee', 'total_cpf_employer',
+        'total_sdl', 'total_shg', 'basic_salary', 'gross_pay', 'net_pay',
+        'cpf_employee', 'cpf_employer', 'sdl', 'shg_deduction', 'performance_allowance',
+        'attendance_deduction', 'unpaid_leave_deduction', 'other_deductions', 'total_allowances',
+        'ot_1_5_pay', 'ot_2_0_pay', 'ph_worked_pay', 'ph_off_day_pay'
+    ];
     return values.map(row => {
         const obj = {};
-        columns.forEach((col, i) => obj[col] = row[i]);
+        columns.forEach((col, i) => {
+            const val = row[i];
+            obj[col] = numericCols.includes(col) ? Number(val || 0) : val;
+        });
         return obj;
     });
 }
@@ -120,7 +130,7 @@ router.post('/run', authMiddleware, async (req, res) => {
 
         // Fetch entity-level performance multiplier
         const entityResult = await db.exec('SELECT performance_multiplier FROM entities WHERE id = ?', [entityId]);
-        const entityPerfMultiplier = toObjects(entityResult)[0]?.performance_multiplier || 0;
+        const entityPerfMultiplier = Number(toObjects(entityResult)[0]?.performance_multiplier || 0);
 
         let totalGross = 0, totalCPFEmployee = 0, totalCPFEmployer = 0, totalSDL = 0, totalSHG = 0, totalNet = 0;
 
@@ -163,9 +173,9 @@ router.post('/run', authMiddleware, async (req, res) => {
             // Standard (unclassified) OT = total minus already-categorised hours.
             // Prevents double-counting when ot_hours stores the grand total inclusive of 1.5x/2.0x.
             const otHours = Math.max(0, totalOtHours - ot15Hours - ot20Hours);
-            const lateMins = otData.total_late || 0;
-            const earlyOutMins = otData.total_early_out || 0;
-            const perfCredits = otData.total_perf_credit || 0;
+            const lateMins = Number(otData.total_late || 0);
+            const earlyOutMins = Number(otData.total_early_out || 0);
+            const perfCredits = Number(otData.total_perf_credit || 0);
 
             console.log(`[Payroll Debug] Emp: ${emp.full_name}, Month: ${year}-${month}, OT1.5: ${ot15Hours}, OT2.0: ${ot20Hours}, Perf: ${perfCredits}`);
 
@@ -278,10 +288,10 @@ router.post('/run', authMiddleware, async (req, res) => {
                 ot20Hours: ot20Hours,
                 overtimeRate: overtimeRate,
                 momHourlyRate: overtimeRate / 1.5,
-                otherDeductions: emp.other_deduction || 0,
+                otherDeductions: Number(emp.other_deduction || 0),
                 performanceCredits: perfCredits,
                 performanceMultiplier: entityPerfMultiplier,
-                year: year
+                year: Number(year)
             });
 
             // Insert payslip (including the new PH and Penalty fields)
@@ -313,12 +323,12 @@ router.post('/run', authMiddleware, async (req, res) => {
                 ]
             );
 
-            totalGross += payslip.gross_pay;
-            totalCPFEmployee += payslip.cpf_employee;
-            totalCPFEmployer += payslip.cpf_employer;
-            totalSDL += payslip.sdl;
-            totalSHG += payslip.shg_deduction;
-            totalNet += payslip.net_pay;
+            totalGross += Number(payslip.gross_pay);
+            totalCPFEmployee += Number(payslip.cpf_employee);
+            totalCPFEmployer += Number(payslip.cpf_employer);
+            totalSDL += Number(payslip.sdl);
+            totalSHG += Number(payslip.shg_deduction);
+            totalNet += Number(payslip.net_pay);
         }
 
         // Update run totals
@@ -360,7 +370,11 @@ router.get('/run/:id', authMiddleware, async (req, res) => {
         const run = toObjects(runResult)[0];
         if (!run) return res.status(404).json({ error: 'Payroll run not found or access denied' });
 
-        const payslips = toObjects(await db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [req.params.id]));
+        const payslipsRaw = toObjects(await db.exec('SELECT * FROM payslips WHERE payroll_run_id = ?', [req.params.id]));
+        const payslips = payslipsRaw.map(p => ({
+            ...p,
+            total_cpf: Number(p.cpf_employee) + Number(p.cpf_employer)
+        }));
         res.json({ run, payslips });
     } catch (err) {
         res.status(500).json({ error: err.message });

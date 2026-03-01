@@ -367,7 +367,7 @@ export default function Payroll() {
                             </h3>
                             <div className="flex gap-6 mt-2">
                                 <span className="text-sm text-[var(--text-muted)]">Gross: <span className="text-[var(--text-main)] font-medium">{formatCurrency(selectedRun.total_gross)}</span></span>
-                                <span className="text-sm text-[var(--text-muted)]">CPF: <span className="text-blue-400 font-medium">{formatCurrency(selectedRun.total_cpf_employee + selectedRun.total_cpf_employer)}</span></span>
+                                <span className="text-sm text-[var(--text-muted)]">CPF: <span className="text-blue-400 font-medium">{formatCurrency(Number(selectedRun.total_cpf_employee) + Number(selectedRun.total_cpf_employer))}</span></span>
                                 <span className="text-sm text-[var(--text-muted)]">Net: <span className="text-[var(--brand-primary)] font-medium">{formatCurrency(selectedRun.total_net)}</span></span>
                             </div>
                         </div>
@@ -504,7 +504,7 @@ export default function Payroll() {
                                         <td><span className="badge-neutral">{run.employee_group}</span></td>
                                         <td className="font-medium text-[var(--text-main)]">{formatMonth(run.period_year, run.period_month)}</td>
                                         <td>{formatCurrency(run.total_gross)}</td>
-                                        <td>{formatCurrency(run.total_cpf_employee + run.total_cpf_employer)}</td>
+                                        <td>{formatCurrency(Number(run.total_cpf_employee) + Number(run.total_cpf_employer))}</td>
                                         <td>{formatCurrency(run.total_sdl)}</td>
                                         <td className="font-medium text-[var(--brand-primary)]">{formatCurrency(run.total_net)}</td>
                                         <td>

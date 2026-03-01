@@ -40,7 +40,26 @@ function processEmployeePayroll(employee, options = {}) {
         performanceCredits = 0,
         performanceMultiplier = 1.0,
         momHourlyRate = 0,  // MOM-formula hourly rate: (12 * basic) / (52 * contractual_weekly_hours)
-    } = options;
+    } = {
+        overtimeHours: Number(options.overtimeHours || 0),
+        ot15Hours: Number(options.ot15Hours || 0),
+        ot20Hours: Number(options.ot20Hours || 0),
+        overtimeRate: Number(options.overtimeRate || 0),
+        bonus: Number(options.bonus || 0),
+        otherDeductions: Number(options.otherDeductions || 0),
+        unpaidLeaveDays: Number(options.unpaidLeaveDays || 0),
+        totalWorkingDaysInMonth: Number(options.totalWorkingDaysInMonth || 22),
+        phWorkedDays: Number(options.phWorkedDays || 0),
+        phOffDaysPaid: Number(options.phOffDaysPaid || 0),
+        ytdOrdinaryWages: Number(options.ytdOrdinaryWages || 0),
+        ytdAdditionalWages: Number(options.ytdAdditionalWages || 0),
+        year: Number(options.year || new Date().getFullYear()),
+        lateMins: Number(options.lateMins || 0),
+        earlyOutMins: Number(options.earlyOutMins || 0),
+        performanceCredits: Number(options.performanceCredits || 0),
+        performanceMultiplier: Number(options.performanceMultiplier || 1.0),
+        momHourlyRate: Number(options.momHourlyRate || 0)
+    };
 
     // Parse custom allowances and deductions
     let customAllowances = {};
@@ -140,16 +159,16 @@ function processEmployeePayroll(employee, options = {}) {
 
 
 
-    const nsDays = options.nsDays || 0;
-    const nsMakeupPay = Math.round(dailyGrossRate * nsDays * 100) / 100;
+    const nsDays = Number(options.nsDays || 0);
+    const nsMakeupPay = Math.round(Number(dailyGrossRate) * nsDays * 100) / 100;
 
-    const grossPay = basicSalary + fixedAllowancesTotal + overtimePay + bonus + phWorkedExtraPay + phOffDayExtraPay + performanceAllowance + nsMakeupPay - unpaidLeaveDeduction - attendanceDeduction;
+    const grossPay = Number(basicSalary) + Number(fixedAllowancesTotal) + Number(overtimePay) + Number(bonus) + Number(phWorkedExtraPay) + Number(phOffDayExtraPay) + Number(performanceAllowance) + Number(nsMakeupPay) - Number(unpaidLeaveDeduction) - Number(attendanceDeduction);
 
     // 2. Calculate CPF (if applicable — Citizens and PR only)
     let cpfResult = { employeeContrib: 0, employerContrib: 0, oa: 0, sa: 0, ma: 0 };
     if (employee.cpf_applicable) {
-        const ordinaryWages = basicSalary + fixedAllowancesTotal - unpaidLeaveDeduction;
-        const additionalWages = overtimePay + bonus + phWorkedExtraPay + phOffDayExtraPay;
+        const ordinaryWages = Number(basicSalary) + Number(fixedAllowancesTotal) - Number(unpaidLeaveDeduction);
+        const additionalWages = Number(overtimePay) + Number(bonus) + Number(phWorkedExtraPay) + Number(phOffDayExtraPay);
         cpfResult = calculateCPF({
             dateOfBirth: employee.date_of_birth,
             ordinaryWages,
@@ -189,7 +208,7 @@ function processEmployeePayroll(employee, options = {}) {
     const statutoryCap = salaryPayable * 0.5;
 
     // Deductions subject to 50% cap: CPF, SHG, Other Misc Deductions (assuming they aren't loans here)
-    const cappedDeductionsSum = cpfResult.employeeContrib + shgResult.amount + otherDeductions + customDeductionsTotal;
+    const cappedDeductionsSum = Number(cpfResult.employeeContrib) + Number(shgResult.amount) + Number(otherDeductions) + Number(customDeductionsTotal);
 
     let totalDeductionsSubjectToCap = cappedDeductionsSum;
     let capWarning = false;
@@ -199,8 +218,8 @@ function processEmployeePayroll(employee, options = {}) {
         capWarning = true;
     }
 
-    // Total deductions = Subject to Cap + Absence Deduction (unpaidLeaveDeduction)
-    const finalTotalDeductions = totalDeductionsSubjectToCap + unpaidLeaveDeduction;
+    // Total deductions = Subject to Cap (unpaidLeaveDeduction is NOT subject to 50% cap and already subtracted from grossPay)
+    const finalTotalDeductions = totalDeductionsSubjectToCap;
     const netPay = Math.round((salaryPayable - finalTotalDeductions) * 100) / 100;
 
     return {

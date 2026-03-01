@@ -57,16 +57,20 @@ router.get('/cpf/:year/:month', authMiddleware, async (req, res) => {
         );
         const data = toObjects(result);
 
-        const totals = data.reduce((acc, row) => ({
-            totalGross: acc.totalGross + row.gross_pay,
-            totalCPFEmployee: acc.totalCPFEmployee + row.cpf_employee,
-            totalCPFEmployer: acc.totalCPFEmployer + row.cpf_employer,
-            totalOA: acc.totalOA + row.cpf_oa,
-            totalSA: acc.totalSA + row.cpf_sa,
-            totalMA: acc.totalMA + row.cpf_ma,
-        }), { totalGross: 0, totalCPFEmployee: 0, totalCPFEmployer: 0, totalOA: 0, totalSA: 0, totalMA: 0 });
+        const totals = data.map(r => ({
+            ...r,
+            total_cpf: Number(r.cpf_employee) + Number(r.cpf_employer)
+        })).reduce((acc, row) => ({
+            totalGross: acc.totalGross + Number(row.gross_pay),
+            totalCPFEmployee: acc.totalCPFEmployee + Number(row.cpf_employee),
+            totalCPFEmployer: acc.totalCPFEmployer + Number(row.cpf_employer),
+            totalOA: acc.totalOA + Number(row.cpf_oa),
+            totalSA: acc.totalSA + Number(row.cpf_sa),
+            totalMA: acc.totalMA + Number(row.cpf_ma),
+            totalCPFPayable: acc.totalCPFPayable + Number(row.cpf_employee) + Number(row.cpf_employer)
+        }), { totalGross: 0, totalCPFEmployee: 0, totalCPFEmployer: 0, totalOA: 0, totalSA: 0, totalMA: 0, totalCPFPayable: 0 });
 
-        res.json({ period: `${month}/${year}`, employees: data, totals });
+        res.json({ period: `${month}/${year}`, employees: data.map(r => ({ ...r, total_cpf: Number(r.cpf_employee) + Number(r.cpf_employer) })), totals });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -82,7 +86,14 @@ router.get('/ir8a/:year', authMiddleware, async (req, res) => {
             'SELECT p.employee_name, p.employee_code, SUM(p.gross_pay) as total_gross, SUM(p.cpf_employee) as total_cpf_employee, SUM(p.cpf_employer) as total_cpf_employer, SUM(p.bonus) as total_bonus FROM payslips p JOIN payroll_runs pr ON p.payroll_run_id = pr.id WHERE pr.entity_id = ? AND pr.period_year = ? GROUP BY p.employee_id',
             [entityId, year]
         );
-        res.json({ year: parseInt(year), employees: toObjects(result) });
+        const data = toObjects(result).map(r => ({
+            ...r,
+            total_gross: Number(r.total_gross),
+            total_cpf_employee: Number(r.total_cpf_employee),
+            total_cpf_employer: Number(r.total_cpf_employer),
+            total_bonus: Number(r.total_bonus)
+        }));
+        res.json({ year: parseInt(year), employees: data });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -99,8 +110,8 @@ router.get('/sdl/:year/:month', authMiddleware, async (req, res) => {
             [entityId, year, month]
         );
         const data = toObjects(result);
-        const totalSDL = data.reduce((sum, r) => sum + r.sdl, 0);
-        res.json({ period: `${month}/${year}`, employees: data, totalSDL: Math.floor(totalSDL) });
+        const totalSDL = data.reduce((sum, r) => Number(sum) + Number(r.sdl), 0);
+        res.json({ period: `${month}/${year}`, employees: data, totalSDL: Math.floor(Number(totalSDL)) });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -122,7 +133,7 @@ router.get('/shg/:year/:month', authMiddleware, async (req, res) => {
         const byFund = {};
         data.forEach(r => {
             if (!byFund[r.shg_fund]) byFund[r.shg_fund] = { total: 0, count: 0 };
-            byFund[r.shg_fund].total += r.shg_deduction;
+            byFund[r.shg_fund].total += Number(r.shg_deduction);
             byFund[r.shg_fund].count++;
         });
 
@@ -194,6 +205,7 @@ router.get('/summary/:year/:month', authMiddleware, async (req, res) => {
                 SUM(gross_pay) as total_gross,
                 SUM(cpf_employee) as total_cpf_ee,
                 SUM(cpf_employer) as total_cpf_er,
+                SUM(cpf_employee + cpf_employer) as total_cpf,
                 SUM(sdl) as total_sdl,
                 SUM(shg_deduction) as total_shg,
                 SUM(net_pay) as total_net,
@@ -206,7 +218,11 @@ router.get('/summary/:year/:month', authMiddleware, async (req, res) => {
             WHERE pr.entity_id = ? AND pr.period_year = ? AND pr.period_month = ?
         `, [entityId, year, month]);
 
-        const summary = toObjects(result)[0] || {};
+        const summaryRaw = toObjects(result)[0] || {};
+        const summary = {};
+        Object.keys(summaryRaw).forEach(key => {
+            summary[key] = key === 'period' ? summaryRaw[key] : Number(summaryRaw[key]);
+        });
         res.json({ period: `${month}/${year}`, ...summary });
     } catch (err) {
         res.status(500).json({ error: err.message });

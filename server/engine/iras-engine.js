@@ -4,8 +4,8 @@
  */
 
 function calculateIR8A(employee, aggregations, biks, shares) {
-    const totalBIK = biks.reduce((sum, b) => sum + (b.value || 0), 0);
-    const totalShareGain = shares.reduce((sum, s) => sum + (s.taxable_profit || 0), 0);
+    const totalBIK = biks.reduce((sum, b) => Number(sum) + Number(b.value || 0), 0);
+    const totalShareGain = shares.reduce((sum, s) => Number(sum) + Number(s.taxable_profit || 0), 0);
 
     // Basic IR8A Data Structure (AIS 2.0 Simplified)
     const ir8a = {
@@ -29,7 +29,7 @@ function calculateIR8A(employee, aggregations, biks, shares) {
             other_allowances: aggregations.total_other_allowance || 0,
             benefits_in_kind: totalBIK,
             share_options_gain: totalShareGain,
-            total_income: (aggregations.total_gross || 0) + totalBIK + totalShareGain
+            total_income: Number(aggregations.total_gross || 0) + Number(totalBIK) + Number(totalShareGain)
         },
         deductions: {
             cpf_employee: aggregations.total_cpf || 0,

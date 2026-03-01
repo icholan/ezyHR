@@ -96,10 +96,10 @@ async function generateMonthlyAttendanceReport(db, empId, year, month, entityId)
             dayInfo.in_time = ts.in_time || '-';
             dayInfo.out_time = ts.out_time || '-';
             dayInfo.shift = ts.shift || 'Day';
-            dayInfo.normal_hours = fmt(ts.normal_hours);
-            dayInfo.ot_1_5_hours = fmt(ts.ot_1_5_hours);
-            dayInfo.ot_2_0_hours = fmt(ts.ot_2_0_hours);
-            dayInfo.ph_hours = fmt(ts.ph_hours);
+            dayInfo.normal_hours = fmt(Number(ts.normal_hours || 0));
+            dayInfo.ot_1_5_hours = fmt(Number(ts.ot_1_5_hours || 0));
+            dayInfo.ot_2_0_hours = fmt(Number(ts.ot_2_0_hours || 0));
+            dayInfo.ph_hours = fmt(Number(ts.ph_hours || 0));
 
             if (dayInfo.status !== 'Present') {
                 dayInfo.remarks = `${dayInfo.status} (Worked)`;

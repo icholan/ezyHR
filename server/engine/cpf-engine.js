@@ -107,27 +107,38 @@ function calculateCPF({
     referenceDate = new Date(),
     year = null
 }) {
-    const calcYear = year || referenceDate.getFullYear();
+    const calcYear = Number(year || referenceDate.getFullYear());
     const age = getAge(dateOfBirth, referenceDate);
     const sprYear = (nationality === 'SPR') ? getSPRYear(prStatusStartDate, referenceDate) : 3;
     const rateBand = getRateBand(age, calcYear, nationality, sprYear, isFullRateAgreed);
     const allocBand = getAllocationBand(age);
     const owCeiling = OW_CEILINGS_BY_YEAR[calcYear] || 8000;
 
+    // Defensive casting for all wage inputs
+    const baseOW = Number(ordinaryWages) || 0;
+    const baseAW = Number(additionalWages) || 0;
+    const ytdOW = Number(ytdOrdinaryWages) || 0;
+    const ytdAW = Number(ytdAdditionalWages) || 0;
+
     // Cap OW at ceiling
-    const cappedOW = Math.min(ordinaryWages, owCeiling);
+    const cappedOW = Math.min(baseOW, owCeiling);
 
     // Additional wages ceiling
-    let awCeiling = ANNUAL_CEILING - (ytdOrdinaryWages + cappedOW);
+    let awCeiling = ANNUAL_CEILING - (ytdOW + cappedOW);
     awCeiling = Math.max(0, awCeiling);
     const cappedAW = Math.min(additionalWages, awCeiling);
 
     const totalCPFWages = cappedOW + cappedAW;
+    const totalRate = rateBand.employerRate + rateBand.employeeRate;
 
-    // Calculate contributions (round to nearest dollar)
-    const employeeContrib = Math.round(totalCPFWages * rateBand.employeeRate);
-    const employerContrib = Math.round(totalCPFWages * rateBand.employerRate);
-    const totalContrib = employeeContrib + employerContrib;
+    // Calculate total contribution first (official CPF rule: round to nearest dollar)
+    const totalContrib = Math.round(totalCPFWages * totalRate);
+
+    // Employee contribution: drop cents (Math.floor)
+    const employeeContrib = Math.floor(totalCPFWages * rateBand.employeeRate);
+
+    // Employer contribution: difference between total and employee share
+    const employerContrib = totalContrib - employeeContrib;
 
     // Allocate to OA/SA/MA
     const oa = Math.round(totalCPFWages * allocBand.oa);
