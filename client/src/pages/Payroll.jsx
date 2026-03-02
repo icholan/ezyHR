@@ -29,6 +29,7 @@ export default function Payroll() {
     const [showTimesheetModal, setShowTimesheetModal] = useState(false)
     const [timesheetFile, setTimesheetFile] = useState(null)
     const [uploading, setUploading] = useState(false)
+    const [historyView, setHistoryView] = useState('group') // 'group' or 'month'
 
     const navigate = useNavigate()
 
@@ -462,20 +463,40 @@ export default function Payroll() {
             )}
 
             <div className="card-base p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-[var(--text-main)]">Payroll History</h3>
-                    <div className="flex items-center gap-2">
-                        <label className="text-xs text-[var(--text-muted)] uppercase font-bold">GIRO Format:</label>
-                        <select
-                            value={giroFormat}
-                            onChange={e => setGiroFormat(e.target.value)}
-                            className="select-base !py-1 !px-2 !text-xs w-32"
-                        >
-                            <option value="DBS">DBS (CSV)</option>
-                            <option value="OCBC">OCBC (TXT)</option>
-                            <option value="UOB">UOB (TXT)</option>
-                            <option value="APS">Interbank APS</option>
-                        </select>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h3 className="text-xl font-bold text-[var(--text-main)]">Payroll History</h3>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5">Track and audit past payroll runs</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-[var(--bg-input)] p-1 rounded-xl border border-[var(--border-main)] shadow-inner">
+                            <button
+                                onClick={() => setHistoryView('group')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${historyView === 'group' ? 'bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            >
+                                By Group
+                            </button>
+                            <button
+                                onClick={() => setHistoryView('month')}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 ${historyView === 'month' ? 'bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            >
+                                By Month
+                            </button>
+                        </div>
+                        <div className="h-8 w-px bg-[var(--border-main)] mx-1" />
+                        <div className="flex items-center gap-2">
+                            <label className="text-[10px] text-[var(--text-muted)] uppercase font-extrabold tracking-wider">GIRO</label>
+                            <select
+                                value={giroFormat}
+                                onChange={e => setGiroFormat(e.target.value)}
+                                className="bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] rounded-lg px-2 py-1 text-xs outline-none focus:border-[var(--brand-primary)]/50 transition-all cursor-pointer font-bold"
+                            >
+                                <option value="DBS">DBS</option>
+                                <option value="OCBC">OCBC</option>
+                                <option value="UOB">UOB</option>
+                                <option value="APS">APS</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -499,37 +520,88 @@ export default function Payroll() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {runs.map(run => (
-                                    <tr key={run.id}>
-                                        <td><span className="badge-neutral">{run.employee_group}</span></td>
-                                        <td className="font-medium text-[var(--text-main)]">{formatMonth(run.period_year, run.period_month)}</td>
-                                        <td>{formatCurrency(run.total_gross)}</td>
-                                        <td>{formatCurrency(Number(run.total_cpf_employee) + Number(run.total_cpf_employer))}</td>
-                                        <td>{formatCurrency(run.total_sdl)}</td>
-                                        <td className="font-medium text-[var(--brand-primary)]">{formatCurrency(run.total_net)}</td>
-                                        <td>
-                                            <button
-                                                onClick={() => handleToggleLock(run.id, run.is_locked)}
-                                                className={`text-xs px-2 py-1 rounded-lg transition-all ${run.is_locked ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-slate-500/10 text-slate-400 hover:bg-slate-500/20'}`}
-                                            >
-                                                {run.is_locked ? '🔒 Locked' : '🔓 Open'}
-                                            </button>
-                                        </td>
-                                        <td>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => {
-                                                    const ext = giroFormat === 'DBS' ? 'csv' : 'txt';
-                                                    downloadExport(`/api/payroll/export-giro/${run.id}?format=${giroFormat}`, `GIRO_${giroFormat}_${run.employee_group}.${ext}`);
-                                                }} className="text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={`${giroFormat} GIRO Export`}>🏦 GIRO</button>
-                                                <button onClick={() => downloadExport(`/api/payroll/export-cpf/${run.id}`, `CPF_${run.employee_group}.txt`)} className="text-xs px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors" title="CPF FTP File">📥 CPF</button>
-                                                <button onClick={() => viewRun(run)} className="text-xs px-2 py-1 rounded-lg bg-[var(--bg-input)] text-[var(--text-muted)] hover:bg-[var(--bg-input)] transition-colors">View</button>
-                                                {!run.is_locked && (
-                                                    <button onClick={() => handleDelete(run.id)} className="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
-                                                )}
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {historyView === 'group' ? (
+                                    runs.map(run => (
+                                        <tr key={run.id}>
+                                            <td><span className="badge-neutral">{run.employee_group}</span></td>
+                                            <td className="font-medium text-[var(--text-main)]">{formatMonth(run.period_year, run.period_month)}</td>
+                                            <td>{formatCurrency(run.total_gross)}</td>
+                                            <td>{formatCurrency(Number(run.total_cpf_employee) + Number(run.total_cpf_employer))}</td>
+                                            <td>{formatCurrency(run.total_sdl)}</td>
+                                            <td className="font-medium text-[var(--brand-primary)]">{formatCurrency(run.total_net)}</td>
+                                            <td>
+                                                <button
+                                                    onClick={() => handleToggleLock(run.id, run.is_locked)}
+                                                    className={`text-xs px-2 py-1 rounded-lg transition-all ${run.is_locked ? 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30' : 'bg-slate-500/10 text-slate-400 hover:bg-slate-500/20'}`}
+                                                >
+                                                    {run.is_locked ? '🔒 Locked' : '🔓 Open'}
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => {
+                                                        const ext = giroFormat === 'DBS' ? 'csv' : 'txt';
+                                                        downloadExport(`/api/payroll/export-giro/${run.id}?format=${giroFormat}`, `GIRO_${giroFormat}_${run.employee_group}.${ext}`);
+                                                    }} className="text-xs px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors" title={`${giroFormat} GIRO Export`}>🏦 GIRO</button>
+                                                    <button onClick={() => downloadExport(`/api/payroll/export-cpf/${run.id}`, `CPF_${run.employee_group}.txt`)} className="text-xs px-2 py-1 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors" title="CPF FTP File">📥 CPF</button>
+                                                    <button onClick={() => viewRun(run)} className="text-xs px-2 py-1 rounded-lg bg-[var(--bg-input)] text-[var(--text-muted)] hover:bg-[var(--bg-input)] transition-colors">View</button>
+                                                    {!run.is_locked && (
+                                                        <button onClick={() => handleDelete(run.id)} className="text-xs px-2 py-1 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Delete</button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    Object.values(runs.reduce((acc, run) => {
+                                        const key = `${run.period_year}-${run.period_month}`;
+                                        if (!acc[key]) {
+                                            acc[key] = {
+                                                period_year: run.period_year,
+                                                period_month: run.period_month,
+                                                employee_groups: [run.employee_group],
+                                                total_gross: 0,
+                                                total_cpf: 0,
+                                                total_sdl: 0,
+                                                total_net: 0,
+                                                run_count: 0,
+                                                all_locked: true
+                                            };
+                                        } else if (!acc[key].employee_groups.includes(run.employee_group)) {
+                                            acc[key].employee_groups.push(run.employee_group);
+                                        }
+                                        acc[key].total_gross += Number(run.total_gross);
+                                        acc[key].total_cpf += (Number(run.total_cpf_employee) + Number(run.total_cpf_employer));
+                                        acc[key].total_sdl += Number(run.total_sdl);
+                                        acc[key].total_net += Number(run.total_net);
+                                        acc[key].run_count += 1;
+                                        if (!run.is_locked) acc[key].all_locked = false;
+                                        return acc;
+                                    }, {})).map(monthRun => (
+                                        <tr key={`${monthRun.period_year}-${monthRun.period_month}`}>
+                                            <td>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {monthRun.employee_groups.map(g => (
+                                                        <span key={g} className="badge-neutral !text-[10px] !py-0.5">{g}</span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="font-medium text-[var(--text-main)]">{formatMonth(monthRun.period_year, monthRun.period_month)}</td>
+                                            <td>{formatCurrency(monthRun.total_gross)}</td>
+                                            <td>{formatCurrency(monthRun.total_cpf)}</td>
+                                            <td>{formatCurrency(monthRun.total_sdl)}</td>
+                                            <td className="font-medium text-[var(--brand-primary)]">{formatCurrency(monthRun.total_net)}</td>
+                                            <td>
+                                                <span className={`text-[10px] uppercase tracking-wider font-bold ${monthRun.all_locked ? 'text-amber-400' : 'text-slate-400'}`}>
+                                                    {monthRun.all_locked ? '🔒 All Locked' : '🔓 Partial'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className="text-xs text-[var(--text-muted)] italic">{monthRun.run_count} runs</span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </div>

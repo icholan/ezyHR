@@ -207,8 +207,9 @@ export default function Users() {
                                 </div>
                             </div>
 
+                            {/* Only show entity assignment for new users. Existing users' entity roles are managed per-entity. */}
                             {!editing && (
-                                <div>
+                                <div className="animate-fade-in">
                                     <label className="block text-sm font-medium text-[var(--text-muted)] mb-2 mt-2">Assign to Entities</label>
                                     <div className="space-y-2 max-h-32 overflow-y-auto pr-2 custom-scrollbar">
                                         {allEntities.map(ent => (

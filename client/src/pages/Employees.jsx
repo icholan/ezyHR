@@ -11,6 +11,7 @@ const Employees = () => {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filters, setFilters] = useState({ department: '', group: '', nationality: '', status: '' });
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'card'
     const { activeEntity } = useAuth();
 
     useEffect(() => {
@@ -142,6 +143,26 @@ const Employees = () => {
                             className="input-glass !pl-9 !pr-4 !py-2.5 !rounded-xl text-sm w-full md:w-64"
                         />
                     </div>
+                    <div className="flex bg-[var(--bg-input)] p-1 rounded-xl border border-[var(--border-main)] shadow-inner">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${viewMode === 'list' ? 'bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            title="List View"
+                        >
+                            <span className="flex items-center gap-2">
+                                <span>📋</span> List
+                            </span>
+                        </button>
+                        <button
+                            onClick={() => setViewMode('card')}
+                            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 ${viewMode === 'card' ? 'bg-[var(--bg-card)] text-[var(--brand-primary)] shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                            title="Grid View"
+                        >
+                            <span className="flex items-center gap-2">
+                                <span>🪪</span> Card
+                            </span>
+                        </button>
+                    </div>
                     <button
                         onClick={() => navigate('/employees/add')}
                         className="btn-primary !py-2.5 !px-6 !text-sm whitespace-nowrap"
@@ -207,94 +228,149 @@ const Employees = () => {
                 </div>
             </div>
 
-            <div className="glass-card rounded-2xl overflow-hidden border border-[var(--border-main)]">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-[var(--bg-main)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
-                                <th className="py-4 px-6 font-semibold">ID</th>
-                                <th className="py-4 px-6 font-semibold">Name & Designation</th>
-                                <th className="py-4 px-6 font-semibold">Status</th>
-                                <th className="py-4 px-6 font-semibold text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[var(--border-main)]">
-                            {filtered.map(emp => (
-                                <tr key={emp.id} className="hover:bg-[var(--bg-main)] transition-colors">
-                                    <td className="py-4 px-6 font-bold text-[var(--brand-primary)]">{emp.employee_id}</td>
-                                    <td className="py-4 px-6">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full border border-[var(--border-main)] overflow-hidden bg-[var(--bg-input)] shadow-sm">
-                                                {emp.photo_url ? (
-                                                    <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-xs text-[var(--text-muted)] font-black">
-                                                        {emp.full_name.charAt(0).toUpperCase()}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="font-bold text-[var(--text-main)]">{emp.full_name}</div>
-                                                    {emp.face_descriptor && (
-                                                        <span className="flex items-center justify-center w-4 h-4 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] rounded-full text-[8px]" title="Face Enrolled">
-                                                            🛡️
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">{emp.designation}</div>
-                                                <div className="flex gap-1 mt-1">
-                                                    <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase bg-[var(--bg-input)] px-1.5 py-0.5 rounded-md border border-[var(--border-main)]">{emp.department}</span>
-                                                    {emp.employee_group && (
-                                                        <span className="text-[8px] font-bold text-[var(--brand-primary)] uppercase bg-[var(--brand-primary)]/5 px-1.5 py-0.5 rounded-md border border-[var(--brand-primary)]/10">{emp.employee_group}</span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-6">
-                                        <div className="flex flex-col gap-1.5">
-                                            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md w-fit ${emp.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                                {emp.status}
-                                            </span>
-                                            <span className="text-[9px] text-[var(--text-muted)] font-medium bg-[var(--bg-input)] px-1.5 py-0.5 rounded w-fit italic">
-                                                {emp.nationality}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="py-4 px-6">
-                                        <div className="flex gap-2 justify-end">
-                                            <button onClick={() => navigate(`/employees/${emp.id}/kets`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="KETs">📋</button>
-                                            <button onClick={() => navigate(`/employees/${emp.id}/documents`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Documents">🪪</button>
-                                            <button onClick={() => navigate(`/employees/${emp.id}/face`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Face Enrollment">👤</button>
-                                            {emp.face_descriptor && (
-                                                <button onClick={() => handleResetFace(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-orange-500 hover:text-white transition-all shadow-sm text-orange-500" title="Reset Face Data">🔄</button>
-                                            )}
-                                            <button onClick={() => handleEdit(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Edit">✏️</button>
-                                            {emp.status === 'Active' && (
-                                                <button onClick={() => openTransferModal(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Transfer">↗️</button>
-                                            )}
-                                            <button onClick={() => handleDelete(emp.id)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm text-rose-500" title="Delete">🗑️</button>
-                                        </div>
-                                    </td>
+            {viewMode === 'list' ? (
+                <div className="glass-card rounded-2xl overflow-hidden border border-[var(--border-main)]">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-[var(--bg-main)] text-[var(--text-muted)] text-xs uppercase tracking-wider">
+                                    <th className="py-4 px-6 font-semibold">ID</th>
+                                    <th className="py-4 px-6 font-semibold">Name & Designation</th>
+                                    <th className="py-4 px-6 font-semibold">Status</th>
+                                    <th className="py-4 px-6 font-semibold text-right">Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--border-main)]">
+                                {filtered.map(emp => (
+                                    <tr key={emp.id} className="hover:bg-[var(--bg-main)] transition-colors">
+                                        <td className="py-4 px-6 font-bold text-[var(--brand-primary)]">{emp.employee_id}</td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full border border-[var(--border-main)] overflow-hidden bg-[var(--bg-input)] shadow-sm">
+                                                    {emp.photo_url ? (
+                                                        <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-xs text-[var(--text-muted)] font-black">
+                                                            {emp.full_name.charAt(0).toUpperCase()}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="font-bold text-[var(--text-main)]">{emp.full_name}</div>
+                                                        {emp.face_descriptor && (
+                                                            <span className="flex items-center justify-center w-4 h-4 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] rounded-full text-[8px]" title="Face Enrolled">
+                                                                🛡️
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-[10px] text-[var(--text-muted)] font-medium mt-0.5">{emp.designation}</div>
+                                                    <div className="flex gap-1 mt-1">
+                                                        <span className="text-[8px] font-bold text-[var(--text-muted)] uppercase bg-[var(--bg-input)] px-1.5 py-0.5 rounded-md border border-[var(--border-main)]">{emp.department}</span>
+                                                        {emp.employee_group && (
+                                                            <span className="text-[8px] font-bold text-[var(--brand-primary)] uppercase bg-[var(--brand-primary)]/5 px-1.5 py-0.5 rounded-md border border-[var(--brand-primary)]/10">{emp.employee_group}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex flex-col gap-1.5">
+                                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md w-fit ${emp.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                    {emp.status}
+                                                </span>
+                                                <span className="text-[9px] text-[var(--text-muted)] font-medium bg-[var(--bg-input)] px-1.5 py-0.5 rounded w-fit italic">
+                                                    {emp.nationality}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-4 px-6">
+                                            <div className="flex gap-2 justify-end">
+                                                <button onClick={() => navigate(`/employees/${emp.id}/kets`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="KETs">📋</button>
+                                                <button onClick={() => navigate(`/employees/${emp.id}/documents`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Documents">🪪</button>
+                                                <button onClick={() => navigate(`/employees/${emp.id}/face`)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Face Enrollment">👤</button>
+                                                {emp.face_descriptor && (
+                                                    <button onClick={() => handleResetFace(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-orange-500 hover:text-white transition-all shadow-sm text-orange-500" title="Reset Face Data">🔄</button>
+                                                )}
+                                                <button onClick={() => handleEdit(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Edit">✏️</button>
+                                                {emp.status === 'Active' && (
+                                                    <button onClick={() => openTransferModal(emp)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Transfer">↗️</button>
+                                                )}
+                                                <button onClick={() => handleDelete(emp.id)} className="w-8 h-8 flex items-center justify-center border border-[var(--border-main)] bg-[var(--bg-input)] rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm text-rose-500" title="Delete">🗑️</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                {loading && (
-                    <div className="py-20 flex flex-col items-center justify-center">
-                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--brand-primary)] mb-4"></div>
-                        <p className="text-[var(--text-muted)] text-sm font-medium">Loading employees...</p>
-                    </div>
-                )}
-                {!loading && filtered.length === 0 && (
-                    <div className="py-20 text-center text-[var(--text-muted)]">
-                        <p className="text-4xl mb-4">🔍</p>
-                        <p className="font-medium text-lg">No employees found matching your search</p>
-                    </div>
-                )}
-            </div>
+            ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {filtered.map(emp => (
+                        <div key={emp.id} className="group glass-card !rounded-[2rem] border border-[var(--border-main)] overflow-hidden hover:border-[var(--brand-primary)]/40 hover:shadow-2xl transition-all duration-500">
+                            <div className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="w-16 h-16 rounded-2xl border-2 border-[var(--border-main)] overflow-hidden bg-[var(--bg-input)] shadow-inner group-hover:border-[var(--brand-primary)]/30 transition-colors">
+                                        {emp.photo_url ? (
+                                            <img src={emp.photo_url} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-xl text-[var(--text-muted)] font-black italic">
+                                                {emp.full_name.charAt(0).toUpperCase()}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col items-end gap-2">
+                                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${emp.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+                                            {emp.status}
+                                        </span>
+                                        <span className="text-[10px] font-bold text-[var(--brand-primary)] font-mono">#{emp.employee_id}</span>
+                                    </div>
+                                </div>
+
+                                <div className="mb-4">
+                                    <h3 className="font-bold text-[var(--text-main)] text-base group-hover:text-[var(--brand-primary)] transition-colors line-clamp-1">{emp.full_name}</h3>
+                                    <p className="text-[11px] text-[var(--text-muted)] font-medium">{emp.designation || 'Staff member'}</p>
+                                </div>
+
+                                <div className="flex flex-wrap gap-1.5 mb-6">
+                                    <span className="text-[9px] font-bold text-[var(--text-muted)] uppercase bg-[var(--bg-input)] px-2 py-0.5 rounded-md border border-[var(--border-main)]">{emp.department}</span>
+                                    {emp.employee_group && (
+                                        <span className="text-[9px] font-bold text-[var(--brand-primary)] uppercase bg-[var(--brand-primary)]/5 px-2 py-0.5 rounded-md border border-[var(--brand-primary)]/10">{emp.employee_group}</span>
+                                    )}
+                                    <span className="text-[9px] font-bold text-amber-500 uppercase bg-amber-500/5 px-2 py-0.5 rounded-md border border-amber-500/10">{emp.nationality}</span>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-4 border-t border-[var(--border-main)]">
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => navigate(`/employees/edit/${emp.id}`)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--bg-input)] text-[var(--text-muted)] hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Edit">✏️</button>
+                                        <button onClick={() => navigate(`/employees/${emp.id}/face`)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--bg-input)] text-[var(--text-muted)] hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="Face Scan">👤</button>
+                                    </div>
+                                    <div className="flex gap-1.5">
+                                        <button onClick={() => navigate(`/employees/${emp.id}/kets`)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-[var(--bg-input)] text-[var(--text-muted)] hover:bg-[var(--brand-primary)] hover:text-white transition-all shadow-sm" title="KETs">📋</button>
+                                        <button onClick={() => handleDelete(emp.id)} className="w-8 h-8 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm" title="Delete">🗑️</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Card Footer Gradient Shadow Overlay */}
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-[var(--brand-primary)]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                    ))}
+                </div>
+            )}
+            {loading && (
+                <div className="py-20 flex flex-col items-center justify-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[var(--brand-primary)] mb-4"></div>
+                    <p className="text-[var(--text-muted)] text-sm font-medium">Loading employees...</p>
+                </div>
+            )}
+            {!loading && filtered.length === 0 && (
+                <div className="py-20 text-center text-[var(--text-muted)]">
+                    <p className="text-4xl mb-4">🔍</p>
+                    <p className="font-medium text-lg">No employees found matching your search</p>
+                </div>
+            )}
         </div>
     );
 };

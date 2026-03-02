@@ -4,8 +4,10 @@ import api from '../services/api'
 import { formatCurrency, formatMonth } from '../utils/formatters'
 import { useAuth } from '../context/AuthContext'
 import * as XLSX from 'xlsx'
-import { Printer, Eye, Download, FileText, LayoutDashboard, Landmark, Users, ClipboardList, ShieldAlert, BadgeAlert, FileCheck, ReceiptText, ArrowLeft, MoreHorizontal, Calendar } from 'lucide-react'
+import { Printer, Eye, Download, FileText, LayoutDashboard, Landmark, Users, ClipboardList, ShieldAlert, BadgeAlert, FileCheck, ReceiptText, ArrowLeft, MoreHorizontal, Calendar, PieChart } from 'lucide-react'
 import ReportViewer from '../components/ReportViewer'
+import SearchableSelect from '../components/SearchableSelect'
+import PayrollResultsVisualizer from '../components/PayrollResultsVisualizer'
 
 const loadLogo = (url) => {
     return new Promise((resolve) => {
@@ -34,6 +36,10 @@ export default function Reports() {
     const [isViewerOpen, setIsViewerOpen] = useState(false)
     const [viewerPdfUrl, setViewerPdfUrl] = useState('')
     const [viewerTitle, setViewerTitle] = useState('')
+    const [visualRun, setVisualRun] = useState(null)
+    const [visualPayslips, setVisualPayslips] = useState([])
+    const [selectedGroup, setSelectedGroup] = useState('')
+    const [groups, setGroups] = useState([])
     const tabs = [
         { key: 'summary', label: 'Payroll Summary', desc: 'Entity-wide payroll totals & stats', icon: LayoutDashboard, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
         { key: 'attendance', label: 'Detailed Attendance', desc: 'Monthly day-by-day timesheet', icon: Calendar, color: 'text-sky-400', bg: 'bg-sky-500/10' },
@@ -45,6 +51,7 @@ export default function Reports() {
         { key: 'sdl', label: 'SDL Report', desc: 'Skills Development Levy', icon: FileCheck, color: 'text-orange-400', bg: 'bg-orange-500/10' },
         { key: 'shg', label: 'SHG Report', desc: 'Self-Help Group deductions', icon: ClipboardList, color: 'text-purple-400', bg: 'bg-purple-500/10' },
         { key: 'ir8a', label: 'IR8A Summary', desc: 'Annual IRAS tax reporting', icon: BadgeAlert, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10' },
+        { key: 'visual_payroll', label: 'Payroll Insights', desc: 'Premium visual payroll report', icon: PieChart, color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
     ]
 
 
@@ -74,6 +81,16 @@ export default function Reports() {
                     if (!attEmployeeId) throw new Error("Please select an employee");
                     result = await api.getDetailedAttendance(year, month, attEmployeeId);
                     break;
+                case 'visual_payroll':
+                    if (!selectedGroup) throw new Error("Please select an employee group");
+                    const runs = await api.getPayrollRuns();
+                    const run = runs.find(r => r.period_year === year && r.period_month === month && r.employee_group === selectedGroup);
+                    if (!run) throw new Error("No payroll run found for this selection");
+                    const slips = await api.getRunPayslips(run.id);
+                    setVisualRun(run);
+                    setVisualPayslips(slips);
+                    result = { run, slips };
+                    break;
             }
             setData(result)
         } catch (err) {
@@ -90,6 +107,9 @@ export default function Reports() {
         }
         if (tab === 'attendance') {
             api.getEmployees().then(setEmployees).catch(() => { });
+        }
+        if (tab === 'visual_payroll') {
+            api.getEmployeeGroups().then(setGroups).catch(() => { });
         }
     }, [tab, activeEntity?.id])
 
@@ -555,14 +575,16 @@ export default function Reports() {
                             {tab === 'attendance' && (
                                 <div className="w-full sm:w-auto">
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">Employee</label>
-                                    <select
+                                    <SearchableSelect
                                         value={attEmployeeId}
-                                        onChange={e => setAttEmployeeId(e.target.value)}
-                                        className="w-full sm:w-64 bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] rounded-xl px-4 py-2.5 outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
-                                    >
-                                        <option value="">Select Employee</option>
-                                        {employees.map(e => <option key={e.id} value={e.id}>{e.full_name} ({e.employee_id})</option>)}
-                                    </select>
+                                        onChange={setAttEmployeeId}
+                                        options={employees.map(e => ({
+                                            value: e.id,
+                                            label: `${e.full_name} (${e.employee_id})`
+                                        }))}
+                                        placeholder="Search & Select Employee"
+                                        className="w-full sm:w-64"
+                                    />
                                 </div>
                             )}
                             {!['ir8a', 'master', 'expiry'].includes(tab) && (
@@ -578,6 +600,19 @@ export default function Reports() {
                                     <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">Year</label>
                                     <select value={year} onChange={e => setYear(parseInt(e.target.value))} className="w-full sm:w-36 bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] rounded-xl px-4 py-2.5 outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer">
                                         {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                            {tab === 'visual_payroll' && (
+                                <div className="w-full sm:w-auto">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-2">Employee Group</label>
+                                    <select
+                                        value={selectedGroup}
+                                        onChange={e => setSelectedGroup(e.target.value)}
+                                        className="w-full sm:w-64 bg-[var(--bg-input)] border border-[var(--border-main)] text-[var(--text-main)] rounded-xl px-4 py-2.5 outline-none focus:border-cyan-500/50 transition-all appearance-none cursor-pointer"
+                                    >
+                                        <option value="">Select Group</option>
+                                        {groups.map(g => <option key={g.id} value={g.name}>{g.name}</option>)}
                                     </select>
                                 </div>
                             )}
@@ -617,6 +652,11 @@ export default function Reports() {
                                             </button>
                                         </>
                                     )}
+                                    {tab === 'visual_payroll' && (
+                                        <button onClick={() => { setVisualRun(null); setData(null); }} className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl border border-[var(--border-main)] bg-[var(--bg-input)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-card)] text-xs font-bold transition-all flex items-center justify-center gap-2">
+                                            Reset View
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -627,6 +667,14 @@ export default function Reports() {
 
                     {data && !loading && (
                         <div className="p-1 animate-slide-up">
+                            {tab === 'visual_payroll' && visualRun && (
+                                <PayrollResultsVisualizer
+                                    run={visualRun}
+                                    payslips={visualPayslips}
+                                    onBack={() => { setVisualRun(null); setData(null); }}
+                                />
+                            )}
+
                             {tab === 'summary' && (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {[
